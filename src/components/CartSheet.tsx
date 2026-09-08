@@ -47,7 +47,7 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                       {product.name}
                     </p>
                     <p className="text-sm text-orange-600">
-                      {formatPrice(product.price * quantity)}
+                      {formatPrice(product.salePrice * quantity)}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">

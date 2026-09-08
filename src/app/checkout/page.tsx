@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import type { PaymentMethod } from "@/types";
@@ -19,32 +19,26 @@ export default function CheckoutPage() {
 
   const isFormValid = name.trim() && phone.trim() && address.trim();
 
-  const orderSummary = useMemo(
-    () =>
-      items
-        .map(({ product, quantity }) => `• ${quantity}x ${product.name} — ${formatPrice(product.price * quantity)}`)
-        .join("\n"),
-    [items]
-  );
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isFormValid || items.length === 0) return;
     setError(null);
+    setLoading(true);
+
+    const payload = {
+      items: items.map(({ product, quantity }) => ({
+        productId: product.id,
+        quantity,
+      })),
+      buyer: { name, phone, address, notes },
+    };
 
     if (method === "mercadopago") {
-      setLoading(true);
       try {
         const res = await fetch("/api/checkout/mercadopago", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            items: items.map(({ product, quantity }) => ({
-              productId: product.id,
-              quantity,
-            })),
-            buyer: { name, phone, address },
-          }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (!res.ok || !data.initPoint) {
@@ -58,27 +52,49 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Transferencia: armamos el mensaje de WhatsApp con el pedido y los datos de contacto.
-    const message = [
-      `Pedido para ${siteConfig.name}`,
-      "",
-      orderSummary,
-      "",
-      `Total: ${formatPrice(totalPrice)}`,
-      "",
-      `Nombre: ${name}`,
-      `Teléfono: ${phone}`,
-      `Dirección de envío: ${address}`,
-      notes ? `Notas: ${notes}` : null,
-      "",
-      "Pago por transferencia. Adjunto el comprobante.",
-    ]
-      .filter(Boolean)
-      .join("\n");
+    // Transferencia: creamos el pedido en el servidor (valida stock y precios
+    // reales) y armamos el mensaje de WhatsApp con esos datos ya confirmados.
+    try {
+      const res = await fetch("/api/checkout/transferencia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const order = await res.json();
+      if (!res.ok) throw new Error(order.error ?? "No se pudo crear el pedido.");
 
-    window.open(buildWhatsappOrderLink(message), "_blank", "noopener,noreferrer");
-    setTransferSent(true);
-    clear();
+      const summary = order.items
+        .map(
+          (it: { name: string; quantity: number; unitPrice: number }) =>
+            `• ${it.quantity}x ${it.name} — ${formatPrice(it.unitPrice * it.quantity)}`
+        )
+        .join("\n");
+
+      const message = [
+        `Pedido para ${siteConfig.name}`,
+        "",
+        summary,
+        "",
+        `Total: ${formatPrice(order.total)}`,
+        "",
+        `Nombre: ${name}`,
+        `Teléfono: ${phone}`,
+        `Dirección de envío: ${address}`,
+        notes ? `Notas: ${notes}` : null,
+        "",
+        "Pago por transferencia. Adjunto el comprobante.",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      window.open(buildWhatsappOrderLink(message), "_blank", "noopener,noreferrer");
+      setTransferSent(true);
+      clear();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo crear el pedido.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (items.length === 0 && !transferSent) {
@@ -143,7 +159,7 @@ export default function CheckoutPage() {
           {items.map(({ product, quantity }) => (
             <li key={product.id} className="flex justify-between">
               <span>{quantity}x {product.name}</span>
-              <span>{formatPrice(product.price * quantity)}</span>
+              <span>{formatPrice(product.salePrice * quantity)}</span>
             </li>
           ))}
         </ul>
@@ -223,7 +239,7 @@ export default function CheckoutPage() {
           className="flex h-12 w-full items-center justify-center rounded-full bg-orange-600 text-sm font-bold text-white disabled:opacity-50"
         >
           {loading
-            ? "Redirigiendo a Mercado Pago…"
+            ? "Procesando…"
             : method === "mercadopago"
               ? `Pagar ${formatPrice(totalPrice)} con Mercado Pago`
               : "Confirmar pedido y ver datos de transferencia"}

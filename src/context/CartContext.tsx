@@ -55,12 +55,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
+        if (existing.quantity >= product.stock) return prev;
         return prev.map((item) =>
           item.product.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
+      if (product.stock <= 0) return prev;
       return [...prev, { product, quantity: 1 }];
     });
   }, []);
@@ -75,7 +77,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return prev.filter((item) => item.product.id !== productId);
       }
       return prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
+        item.product.id === productId
+          ? { ...item, quantity: Math.min(quantity, item.product.stock) }
+          : item
       );
     });
   }, []);
@@ -87,7 +91,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [items]
   );
   const totalPrice = useMemo(
-    () => items.reduce((sum, item) => sum + item.quantity * item.product.price, 0),
+    () => items.reduce((sum, item) => sum + item.quantity * item.product.salePrice, 0),
     [items]
   );
 

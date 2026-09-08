@@ -1,47 +1,15 @@
-"use client";
+import { HomeClient } from "@/components/HomeClient";
+import { getActiveBanners, getStorefrontProducts } from "@/lib/db/queries";
 
-import { useMemo, useState } from "react";
-import { CartBar } from "@/components/CartBar";
-import { CartSheet } from "@/components/CartSheet";
-import { CategoryTabs } from "@/components/CategoryTabs";
-import { Header } from "@/components/Header";
-import { ProductGrid } from "@/components/ProductGrid";
-import { siteConfig } from "@/config/site";
-import { categories, products } from "@/data/products";
+export const dynamic = "force-dynamic";
 
-export default function Home() {
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [cartOpen, setCartOpen] = useState(false);
+export default async function Home() {
+  const [products, banners] = await Promise.all([
+    getStorefrontProducts(),
+    getActiveBanners(),
+  ]);
 
-  const visibleProducts = useMemo(
-    () =>
-      activeCategory
-        ? products.filter((product) => product.category === activeCategory)
-        : products,
-    [activeCategory]
-  );
+  const categories = Array.from(new Set(products.map((p) => p.category)));
 
-  return (
-    <div className="flex flex-1 flex-col pb-28">
-      <div className="sticky top-0 z-30">
-        <Header onCartClick={() => setCartOpen(true)} />
-        <CategoryTabs
-          categories={categories}
-          active={activeCategory}
-          onSelect={setActiveCategory}
-        />
-      </div>
-
-      <p className="px-4 pt-3 text-xs text-zinc-500">
-        🚚 {siteConfig.deliveryNote}
-      </p>
-
-      <main className="mx-auto w-full max-w-3xl flex-1">
-        <ProductGrid products={visibleProducts} />
-      </main>
-
-      <CartBar onClick={() => setCartOpen(true)} />
-      <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} />
-    </div>
-  );
+  return <HomeClient products={products} categories={categories} banners={banners} />;
 }

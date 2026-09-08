@@ -1,7 +1,9 @@
-import type { Product } from "@/types";
+import { db } from "./client";
+import { products } from "./schema";
 
-// Catálogo de ejemplo. Editá, agregá o quitá productos según tu kiosco real.
-export const products: Product[] = [
+// Catálogo inicial de ejemplo. El costPrice es un placeholder (60% del
+// precio de venta) — editalo con los valores reales desde /admin/productos.
+const seedProducts = [
   { id: "gol-1", name: "Alfajor Jorgito Blanco", category: "Golosinas", price: 1200, emoji: "🍫" },
   { id: "gol-2", name: "Chocolate Águila", category: "Golosinas", price: 1500, emoji: "🍫" },
   { id: "gol-3", name: "Caramelos Media Hora x5", category: "Golosinas", price: 900, emoji: "🍬" },
@@ -32,4 +34,25 @@ export const products: Product[] = [
   { id: "alm-4", name: "Yerba Mate 500g", category: "Almacén", price: 3200, emoji: "🧉" },
 ];
 
-export const categories = Array.from(new Set(products.map((p) => p.category)));
+async function main() {
+  await db.delete(products);
+  await db.insert(products).values(
+    seedProducts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      emoji: p.emoji,
+      salePrice: p.price,
+      costPrice: Math.round(p.price * 0.6),
+      stock: 20,
+      lowStockThreshold: 5,
+      active: true,
+    }))
+  );
+  console.log(`Seed listo: ${seedProducts.length} productos cargados.`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
