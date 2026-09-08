@@ -17,14 +17,14 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
         onClick={onClose}
         className="absolute inset-0 bg-black/40"
       />
-      <div className="relative z-10 flex max-h-[80vh] w-full max-w-3xl flex-col rounded-t-3xl bg-white p-4 shadow-xl">
+      <div className="safe-bottom relative z-10 flex max-h-[85vh] w-full max-w-3xl flex-col rounded-t-3xl bg-white p-4 shadow-xl">
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-zinc-200" />
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-zinc-800">Tu pedido</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-sm font-medium text-zinc-500"
+            className="-mr-2 px-2 py-2 text-sm font-medium text-zinc-500"
           >
             Cerrar
           </button>
@@ -50,22 +50,22 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                       {formatPrice(product.price * quantity)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setQuantity(product.id, quantity - 1)}
-                      className="h-8 w-8 rounded-full border border-orange-200 text-sm font-bold text-orange-600 active:scale-95"
+                      className="h-9 w-9 shrink-0 rounded-full border border-orange-200 text-sm font-bold text-orange-600 active:scale-95"
                       aria-label="Quitar uno"
                     >
                       −
                     </button>
-                    <span className="w-4 text-center text-sm font-semibold">
+                    <span className="w-5 text-center text-sm font-semibold">
                       {quantity}
                     </span>
                     <button
                       type="button"
                       onClick={() => setQuantity(product.id, quantity + 1)}
-                      className="h-8 w-8 rounded-full border border-orange-200 text-sm font-bold text-orange-600 active:scale-95"
+                      className="h-9 w-9 shrink-0 rounded-full border border-orange-200 text-sm font-bold text-orange-600 active:scale-95"
                       aria-label="Agregar uno"
                     >
                       +
@@ -74,7 +74,7 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                   <button
                     type="button"
                     onClick={() => removeItem(product.id)}
-                    className="text-sm text-zinc-400"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center text-base text-zinc-400"
                     aria-label={`Quitar ${product.name} del carrito`}
                   >
                     ✕

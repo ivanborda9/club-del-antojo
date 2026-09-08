@@ -23,12 +23,14 @@ export default function Home() {
 
   return (
     <div className="flex flex-1 flex-col pb-28">
-      <Header onCartClick={() => setCartOpen(true)} />
-      <CategoryTabs
-        categories={categories}
-        active={activeCategory}
-        onSelect={setActiveCategory}
-      />
+      <div className="sticky top-0 z-30">
+        <Header onCartClick={() => setCartOpen(true)} />
+        <CategoryTabs
+          categories={categories}
+          active={activeCategory}
+          onSelect={setActiveCategory}
+        />
+      </div>
 
       <p className="px-4 pt-3 text-xs text-zinc-500">
         🚚 {siteConfig.deliveryNote}

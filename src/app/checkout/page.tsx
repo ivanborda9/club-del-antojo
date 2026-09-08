@@ -97,7 +97,7 @@ export default function CheckoutPage() {
 
   if (transferSent) {
     return (
-      <div className="mx-auto max-w-md px-4 py-10">
+      <div className="safe-bottom mx-auto max-w-md px-4 py-10">
         <h1 className="text-lg font-bold text-zinc-800">¡Listo! Enviá el comprobante</h1>
         <p className="mt-2 text-sm text-zinc-500">
           Te abrimos WhatsApp con el detalle del pedido. Transferí el total y mandanos
@@ -133,7 +133,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-6">
+    <div className="safe-bottom mx-auto max-w-md px-4 py-6">
       <h1 className="text-lg font-bold text-zinc-800">Terminar pedido</h1>
       <p className="mt-1 text-xs text-zinc-500">🚚 {siteConfig.deliveryNote}</p>
 
@@ -157,6 +157,7 @@ export default function CheckoutPage() {
         <Field label="Nombre y apellido">
           <input
             required
+            autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="input"
@@ -167,6 +168,8 @@ export default function CheckoutPage() {
           <input
             required
             type="tel"
+            inputMode="tel"
+            autoComplete="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className="input"
@@ -176,6 +179,7 @@ export default function CheckoutPage() {
         <Field label={`Dirección de envío en ${siteConfig.city}`}>
           <input
             required
+            autoComplete="street-address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             className="input"

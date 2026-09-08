@@ -15,6 +15,14 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  /* apagamos el flash gris nativo al tocar botones/links en Android */
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  /* evita el delay de 300ms y el doble-tap-para-zoom en botones */
+  touch-action: manipulation;
 }
 
 .input {
@@ -23,11 +31,26 @@ body {
   border: 1px solid #fed7aa;
   background: #fff;
   padding: 0.625rem 0.75rem;
-  font-size: 0.875rem;
+  /* 16px minimo: si es menor, iOS Safari hace zoom automatico al enfocar */
+  font-size: 1rem;
   color: #1c1917;
 }
 
 .input:focus {
   outline: 2px solid #ea580c;
   outline-offset: 1px;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }

@@ -7,7 +7,7 @@ export function Header({ onCartClick }: { onCartClick: () => void }) {
   const { totalItems } = useCart();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-orange-100 bg-white/90 backdrop-blur">
+    <header className="border-b border-orange-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
         <div>
           <h1 className="text-lg font-bold text-orange-600">{siteConfig.name}</h1>
