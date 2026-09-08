@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { formatPrice } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import type { Product } from "@/types";
@@ -12,8 +13,18 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <div className="flex flex-col rounded-2xl border border-orange-100 bg-white p-3 shadow-sm">
-      <div className="relative flex h-20 items-center justify-center rounded-xl bg-orange-50 text-4xl">
-        {product.emoji}
+      <div className="relative flex h-20 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-4xl">
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 45vw, 200px"
+            className="object-cover"
+          />
+        ) : (
+          product.emoji
+        )}
         {outOfStock && (
           <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 text-xs font-semibold text-zinc-500">
             Sin stock

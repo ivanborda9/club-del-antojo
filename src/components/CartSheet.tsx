@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@/config/site";
 import { useCart } from "@/context/CartContext";
@@ -39,8 +40,18 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
             <div className="mt-3 flex-1 space-y-3 overflow-y-auto">
               {items.map(({ product, quantity }) => (
                 <div key={product.id} className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-2xl">
-                    {product.emoji}
+                  <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-2xl">
+                    {product.imageUrl ? (
+                      <Image
+                        src={product.imageUrl}
+                        alt=""
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      product.emoji
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-zinc-800">

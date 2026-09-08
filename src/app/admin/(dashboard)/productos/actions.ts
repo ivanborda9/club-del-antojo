@@ -15,11 +15,14 @@ function parseProductForm(formData: FormData): ProductInput | { error: string } 
   const name = String(formData.get("name") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const emoji = String(formData.get("emoji") ?? "🛒").trim() || "🛒";
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
   const costPrice = Number(formData.get("costPrice"));
   const salePrice = Number(formData.get("salePrice"));
   const stock = Number(formData.get("stock"));
   const lowStockThreshold = Number(formData.get("lowStockThreshold"));
   const active = formData.get("active") === "on";
+  const scheduleStart = String(formData.get("scheduleStart") ?? "").trim() || null;
+  const scheduleEnd = String(formData.get("scheduleEnd") ?? "").trim() || null;
 
   if (!name) return { error: "El nombre es obligatorio." };
   if (!category) return { error: "La categoría es obligatoria." };
@@ -35,8 +38,23 @@ function parseProductForm(formData: FormData): ProductInput | { error: string } 
   if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
     return { error: "El umbral de stock bajo debe ser un número entero." };
   }
+  if ((scheduleStart && !scheduleEnd) || (!scheduleStart && scheduleEnd)) {
+    return { error: "Completá los dos horarios (desde y hasta), o dejá ambos vacíos." };
+  }
 
-  return { name, category, emoji, costPrice, salePrice, stock, lowStockThreshold, active };
+  return {
+    name,
+    category,
+    emoji,
+    imageUrl,
+    costPrice,
+    salePrice,
+    stock,
+    lowStockThreshold,
+    active,
+    scheduleStart,
+    scheduleEnd,
+  };
 }
 
 export async function createProductAction(

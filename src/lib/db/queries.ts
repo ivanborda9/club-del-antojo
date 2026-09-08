@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "./client";
 import { banners, orderItems, orders, products } from "./schema";
 import type { NewBannerRow, NewProductRow, ProductRow } from "./schema";
+import { isWithinSchedule } from "@/lib/schedule";
 
 // orders.createdAt se guarda con el formato de SQLite CURRENT_TIMESTAMP
 // ("YYYY-MM-DD HH:MM:SS", en UTC) — los filtros por fecha deben usar el
@@ -24,6 +25,7 @@ export async function getProductById(id: string): Promise<ProductRow | undefined
 }
 
 // Solo los campos que puede ver un cliente en la tienda: nunca costPrice.
+// Los productos con horario configurado se ocultan fuera de su ventana.
 export async function getStorefrontProducts() {
   const rows = await db
     .select({
@@ -31,13 +33,27 @@ export async function getStorefrontProducts() {
       name: products.name,
       category: products.category,
       emoji: products.emoji,
+      imageUrl: products.imageUrl,
       salePrice: products.salePrice,
       stock: products.stock,
+      scheduleStart: products.scheduleStart,
+      scheduleEnd: products.scheduleEnd,
     })
     .from(products)
     .where(eq(products.active, true))
     .orderBy(asc(products.category), asc(products.name));
-  return rows;
+
+  return rows
+    .filter((p) => isWithinSchedule(p.scheduleStart, p.scheduleEnd))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      emoji: p.emoji,
+      imageUrl: p.imageUrl,
+      salePrice: p.salePrice,
+      stock: p.stock,
+    }));
 }
 
 export async function getLowStockProducts(): Promise<ProductRow[]> {
@@ -51,11 +67,14 @@ export type ProductInput = {
   name: string;
   category: string;
   emoji: string;
+  imageUrl: string | null;
   costPrice: number;
   salePrice: number;
   stock: number;
   lowStockThreshold: number;
   active: boolean;
+  scheduleStart: string | null;
+  scheduleEnd: string | null;
 };
 
 export async function createProduct(input: ProductInput): Promise<string> {

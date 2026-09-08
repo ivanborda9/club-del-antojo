@@ -5,6 +5,7 @@ export type Product = {
   name: string;
   category: string;
   emoji: string;
+  imageUrl: string | null;
   salePrice: number;
   stock: number;
 };

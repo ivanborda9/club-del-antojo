@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { upload } from "@vercel/blob/client";
+import Image from "next/image";
+import { useActionState, useMemo, useRef, useState } from "react";
 import { marginPercent } from "@/lib/margin";
 import type { ProductFormState } from "@/app/admin/(dashboard)/productos/actions";
 import type { ProductRow } from "@/lib/db/schema";
@@ -17,11 +19,72 @@ export function ProductForm({ action, product, categories }: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [costPrice, setCostPrice] = useState(product?.costPrice ?? 0);
   const [salePrice, setSalePrice] = useState(product?.salePrice ?? 0);
+  const [imageUrl, setImageUrl] = useState<string | null>(product?.imageUrl ?? null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState(
+    Boolean(product?.scheduleStart && product?.scheduleEnd)
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const margin = useMemo(() => marginPercent(costPrice, salePrice), [costPrice, salePrice]);
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const blob = await upload(`products/${crypto.randomUUID()}-${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/admin/upload",
+      });
+      setImageUrl(blob.url);
+    } catch {
+      setUploadError("No se pudo subir la imagen. Probá con otro archivo.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <form action={formAction} className="max-w-lg space-y-3">
+      <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
+
+      <Field label="Foto del producto (opcional)">
+        <div className="flex items-center gap-3">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-3xl">
+            {imageUrl ? (
+              <Image src={imageUrl} alt="" width={64} height={64} className="h-full w-full object-cover" />
+            ) : (
+              product?.emoji ?? "🛒"
+            )}
+          </div>
+          <div className="flex-1 space-y-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleFileChange}
+              disabled={uploading}
+              className="block w-full text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-orange-600 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white"
+            />
+            {uploading && <p className="text-xs text-zinc-500">Subiendo…</p>}
+            {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
+            {imageUrl && !uploading && (
+              <button
+                type="button"
+                onClick={() => setImageUrl(null)}
+                className="text-xs text-red-600"
+              >
+                Quitar imagen
+              </button>
+            )}
+          </div>
+        </div>
+      </Field>
+
       <Field label="Nombre">
         <input
           name="name"
@@ -47,7 +110,7 @@ export function ProductForm({ action, product, categories }: Props) {
             ))}
           </datalist>
         </Field>
-        <Field label="Emoji / ícono">
+        <Field label="Emoji (si no hay foto)">
           <input name="emoji" defaultValue={product?.emoji ?? "🛒"} className="input" />
         </Field>
       </div>
@@ -123,14 +186,55 @@ export function ProductForm({ action, product, categories }: Props) {
         Visible en la tienda
       </label>
 
+      <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+          <input
+            type="checkbox"
+            checked={scheduleEnabled}
+            onChange={(e) => setScheduleEnabled(e.target.checked)}
+            className="h-4 w-4"
+          />
+          Restringir a un horario (ej: solo de noche)
+        </label>
+        {scheduleEnabled && (
+          <>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <Field label="Disponible desde">
+                <input
+                  name="scheduleStart"
+                  type="time"
+                  required={scheduleEnabled}
+                  defaultValue={product?.scheduleStart ?? "22:00"}
+                  className="input"
+                />
+              </Field>
+              <Field label="Disponible hasta">
+                <input
+                  name="scheduleEnd"
+                  type="time"
+                  required={scheduleEnabled}
+                  defaultValue={product?.scheduleEnd ?? "06:00"}
+                  className="input"
+                />
+              </Field>
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">
+              Fuera de este horario, el producto desaparece de la tienda (aunque esté
+              &quot;Visible&quot;) y no se puede comprar. Si el horario cruza la
+              medianoche (ej: 22:00 a 06:00), se toma como nocturno automáticamente.
+            </p>
+          </>
+        )}
+      </div>
+
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || uploading}
         className="flex h-11 items-center justify-center rounded-full bg-orange-600 px-6 text-sm font-bold text-white disabled:opacity-50"
       >
-        {pending ? "Guardando…" : "Guardar producto"}
+        {pending ? "Guardando…" : uploading ? "Esperando imagen…" : "Guardar producto"}
       </button>
     </form>
   );

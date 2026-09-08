@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { orderItems, orders, products } from "@/lib/db/schema";
+import { isWithinSchedule } from "@/lib/schedule";
 
 export type CheckoutItemInput = { productId: string; quantity: number };
 export type Buyer = { name: string; phone: string; address: string; notes?: string };
@@ -39,6 +40,9 @@ export async function createOrderFromCart(
     const product = rows[0];
     if (!product || !product.active) {
       throw new CheckoutError(`Uno de los productos ya no está disponible.`);
+    }
+    if (!isWithinSchedule(product.scheduleStart, product.scheduleEnd)) {
+      throw new CheckoutError(`"${product.name}" no está disponible en este horario.`);
     }
     if (product.stock < quantity) {
       throw new CheckoutError(

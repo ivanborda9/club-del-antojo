@@ -12,6 +12,8 @@ export const siteConfig = {
   },
   currency: "ARS",
   locale: "es-AR",
+  // Zona horaria usada para los horarios de disponibilidad de productos.
+  timezone: "America/Argentina/Buenos_Aires",
 };
 
 export function formatPrice(value: number): string {

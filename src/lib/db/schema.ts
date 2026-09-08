@@ -6,11 +6,17 @@ export const products = sqliteTable("products", {
   name: text("name").notNull(),
   category: text("category").notNull(),
   emoji: text("emoji").notNull().default("🛒"),
+  imageUrl: text("image_url"),
   costPrice: real("cost_price").notNull().default(0),
   salePrice: real("sale_price").notNull(),
   stock: integer("stock").notNull().default(0),
   lowStockThreshold: integer("low_stock_threshold").notNull().default(5),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
+  // Horario de disponibilidad ("HH:MM", 24hs). Si ambos son null, el
+  // producto está disponible todo el día (según "active"). Soporta rangos
+  // que cruzan la medianoche, ej. 22:00–06:00.
+  scheduleStart: text("schedule_start"),
+  scheduleEnd: text("schedule_end"),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
   updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`),
 });
