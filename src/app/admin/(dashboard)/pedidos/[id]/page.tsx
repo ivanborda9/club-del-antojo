@@ -7,6 +7,7 @@ import {
   ORDER_STATUS_STYLES,
   PAYMENT_METHOD_LABELS,
 } from "@/lib/orderStatus";
+import { formatArgentinaDateTime } from "@/lib/timezone";
 import { changeOrderStatusAction } from "../actions";
 
 export default async function OrderDetailPage(
@@ -38,7 +39,7 @@ export default async function OrderDetailPage(
         )}
         <p className="mt-2 text-xs text-zinc-400">
           {PAYMENT_METHOD_LABELS[order.paymentMethod]} ·{" "}
-          {new Date(order.createdAt).toLocaleString("es-AR")}
+          {formatArgentinaDateTime(order.createdAt)}
         </p>
       </div>
 

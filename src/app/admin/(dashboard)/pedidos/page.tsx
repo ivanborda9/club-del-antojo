@@ -7,6 +7,7 @@ import {
   ORDER_STATUS_STYLES,
   PAYMENT_METHOD_LABELS,
 } from "@/lib/orderStatus";
+import { formatArgentinaDateTime } from "@/lib/timezone";
 
 export default async function AdminOrdersPage(
   props: PageProps<"/admin/pedidos">
@@ -49,7 +50,7 @@ export default async function AdminOrdersPage(
               </p>
               <p className="text-xs text-zinc-500">
                 {PAYMENT_METHOD_LABELS[order.paymentMethod]} ·{" "}
-                {new Date(order.createdAt).toLocaleString("es-AR")}
+                {formatArgentinaDateTime(order.createdAt)}
               </p>
             </div>
             <div className="flex items-center gap-3">

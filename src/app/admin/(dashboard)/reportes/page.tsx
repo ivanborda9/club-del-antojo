@@ -1,30 +1,28 @@
-import { getLowStockProducts, getSalesReport } from "@/lib/db/queries";
+import { getLowStockProducts, getSalesReport, toSqliteTimestamp } from "@/lib/db/queries";
 import { formatPrice } from "@/config/site";
-
-function toDateInputValue(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+import { argentinaDateRangeToUTC, getArgentinaDateString } from "@/lib/timezone";
 
 export default async function AdminReportsPage(
   props: PageProps<"/admin/reportes">
 ) {
   const searchParams = await props.searchParams;
 
-  const today = new Date();
-  const defaultFrom = new Date(today);
-  defaultFrom.setDate(defaultFrom.getDate() - 30);
+  const todayAR = getArgentinaDateString();
+  const defaultFromDate = new Date();
+  defaultFromDate.setDate(defaultFromDate.getDate() - 30);
+  const defaultFromAR = getArgentinaDateString(defaultFromDate);
 
   const from =
     typeof searchParams.from === "string" && searchParams.from
       ? searchParams.from
-      : toDateInputValue(defaultFrom);
+      : defaultFromAR;
   const to =
-    typeof searchParams.to === "string" && searchParams.to
-      ? searchParams.to
-      : toDateInputValue(today);
+    typeof searchParams.to === "string" && searchParams.to ? searchParams.to : todayAR;
+
+  const { start, end } = argentinaDateRangeToUTC(from, to);
 
   const [report, lowStock] = await Promise.all([
-    getSalesReport(`${from} 00:00:00`, `${to} 23:59:59`),
+    getSalesReport(toSqliteTimestamp(start), toSqliteTimestamp(end)),
     getLowStockProducts(),
   ]);
 

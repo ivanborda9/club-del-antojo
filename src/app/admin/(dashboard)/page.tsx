@@ -6,14 +6,13 @@ import {
   toSqliteTimestamp,
 } from "@/lib/db/queries";
 import { formatPrice } from "@/config/site";
+import { getArgentinaTodayBoundsUTC } from "@/lib/timezone";
 
 export default async function AdminDashboardPage() {
-  const today = new Date();
-  const startOfToday = new Date(today);
-  startOfToday.setHours(0, 0, 0, 0);
+  const { start, end } = getArgentinaTodayBoundsUTC();
 
   const [todayReport, pendingOrders, lowStock] = await Promise.all([
-    getSalesReport(toSqliteTimestamp(startOfToday), toSqliteTimestamp(today)),
+    getSalesReport(toSqliteTimestamp(start), toSqliteTimestamp(end)),
     listOrders("pendiente_pago"),
     getLowStockProducts(),
   ]);
