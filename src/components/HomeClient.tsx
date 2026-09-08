@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Banners } from "@/components/Banners";
 import { CartBar } from "@/components/CartBar";
@@ -49,6 +50,12 @@ export function HomeClient({ products, categories, banners }: Props) {
       <main className="mx-auto w-full max-w-3xl flex-1">
         <ProductGrid products={visibleProducts} />
       </main>
+
+      <footer className="px-4 py-6 text-center">
+        <Link href="/admin" className="text-xs text-zinc-400 underline underline-offset-2">
+          Admin
+        </Link>
+      </footer>
 
       <CartBar onClick={() => setCartOpen(true)} />
       <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} />
