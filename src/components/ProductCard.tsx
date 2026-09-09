@@ -13,14 +13,14 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <div className="flex flex-col rounded-2xl border border-orange-100 bg-white p-3 shadow-sm">
-      <div className="relative flex h-20 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-4xl">
+      <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-4xl">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 45vw, 200px"
-            className="object-cover"
+            className="object-contain p-2"
           />
         ) : (
           product.emoji

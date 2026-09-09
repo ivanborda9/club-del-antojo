@@ -59,7 +59,7 @@ export function ProductForm({ action, product, categories }: Props) {
         <div className="flex items-center gap-3">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-3xl">
             {imageUrl ? (
-              <Image src={imageUrl} alt="" width={64} height={64} className="h-full w-full object-cover" />
+              <Image src={imageUrl} alt="" width={64} height={64} className="h-full w-full object-contain p-1" />
             ) : (
               product?.emoji ?? "🛒"
             )}

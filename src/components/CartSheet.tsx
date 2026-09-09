@@ -47,7 +47,7 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                         alt=""
                         fill
                         sizes="48px"
-                        className="object-cover"
+                        className="object-contain p-1"
                       />
                     ) : (
                       product.emoji
