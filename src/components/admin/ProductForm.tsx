@@ -40,8 +40,11 @@ export function ProductForm({ action, product, categories }: Props) {
         handleUploadUrl: "/api/admin/upload",
       });
       setImageUrl(blob.url);
-    } catch {
-      setUploadError("No se pudo subir la imagen. Probá con otro archivo.");
+    } catch (err) {
+      console.error("Error al subir imagen:", err);
+      setUploadError(
+        err instanceof Error ? err.message : "No se pudo subir la imagen. Probá con otro archivo."
+      );
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
