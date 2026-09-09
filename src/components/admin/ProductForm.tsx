@@ -1,6 +1,5 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
 import Image from "next/image";
 import { useActionState, useMemo, useRef, useState } from "react";
 import { marginPercent } from "@/lib/margin";
@@ -35,11 +34,12 @@ export function ProductForm({ action, product, categories }: Props) {
     setUploading(true);
     setUploadError(null);
     try {
-      const blob = await upload(`products/${crypto.randomUUID()}-${file.name}`, file, {
-        access: "public",
-        handleUploadUrl: "/api/admin/upload",
-      });
-      setImageUrl(blob.url);
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "No se pudo subir la imagen.");
+      setImageUrl(data.url);
     } catch (err) {
       console.error("Error al subir imagen:", err);
       setUploadError(
