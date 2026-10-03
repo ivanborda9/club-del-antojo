@@ -1,0 +1,22 @@
+{
+  "name": "Club del Antojo · Repartidores",
+  "short_name": "Repartidores",
+  "description": "Pedidos disponibles y entregas para repartidores de Club del Antojo",
+  "start_url": "/rider",
+  "scope": "/rider",
+  "display": "standalone",
+  "background_color": "#fff7ed",
+  "theme_color": "#ea580c",
+  "icons": [
+    {
+      "src": "/rider/icon",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/rider/icon-512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
