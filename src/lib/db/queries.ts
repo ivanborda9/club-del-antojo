@@ -1,8 +1,15 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "./client";
-import { banners, orderItems, orders, products, riders } from "./schema";
-import type { NewBannerRow, NewProductRow, NewRiderRow, ProductRow, RiderRow } from "./schema";
+import { banners, orderItems, orders, products, pushSubscriptions, riders } from "./schema";
+import type {
+  NewBannerRow,
+  NewProductRow,
+  NewPushSubscriptionRow,
+  NewRiderRow,
+  ProductRow,
+  RiderRow,
+} from "./schema";
 import { isWithinSchedule } from "@/lib/schedule";
 
 // orders.createdAt se guarda con el formato de SQLite CURRENT_TIMESTAMP
@@ -234,6 +241,54 @@ export async function releaseOrderFromRider(orderId: string): Promise<void> {
     .update(orders)
     .set({ riderId: null, status: "pagado", updatedAt: sql`(current_timestamp)` })
     .where(eq(orders.id, orderId));
+}
+
+// ---------- Suscripciones push (repartidores) ----------
+
+// Un mismo endpoint puede volver a suscribirse (ej. el repartidor reactiva
+// las notificaciones): lo reemplaza en vez de duplicarlo.
+export async function savePushSubscription(input: {
+  riderId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}): Promise<void> {
+  const existing = (
+    await db
+      .select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.endpoint, input.endpoint))
+      .limit(1)
+  )[0];
+
+  if (existing) {
+    await db
+      .update(pushSubscriptions)
+      .set({ riderId: input.riderId, p256dh: input.p256dh, auth: input.auth })
+      .where(eq(pushSubscriptions.endpoint, input.endpoint));
+    return;
+  }
+
+  const row: NewPushSubscriptionRow = { id: randomUUID(), ...input };
+  await db.insert(pushSubscriptions).values(row);
+}
+
+export async function deletePushSubscriptionByEndpoint(endpoint: string): Promise<void> {
+  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+}
+
+// Suscripciones de todos los repartidores activos: a quién avisarle cuando
+// entra un pedido nuevo al pool.
+export async function getPushSubscriptionsForActiveRiders() {
+  return db
+    .select({
+      endpoint: pushSubscriptions.endpoint,
+      p256dh: pushSubscriptions.p256dh,
+      auth: pushSubscriptions.auth,
+    })
+    .from(pushSubscriptions)
+    .innerJoin(riders, eq(riders.id, pushSubscriptions.riderId))
+    .where(eq(riders.active, true));
 }
 
 // ---------- Banners ----------

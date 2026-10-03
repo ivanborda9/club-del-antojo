@@ -7,6 +7,7 @@ import {
   restoreStockForOrder,
   updateOrderStatus,
 } from "@/lib/db/queries";
+import { notifyRidersOfNewOrder } from "@/lib/push";
 
 const VALID_STATUSES = ["pendiente_pago", "pagado", "en_camino", "entregado", "cancelado"];
 
@@ -28,6 +29,12 @@ export async function changeOrderStatusAction(formData: FormData): Promise<void>
   revalidatePath("/admin/pedidos");
   revalidatePath(`/admin/pedidos/${id}`);
   revalidatePath("/admin");
+
+  // Si el admin lo marca como pagado a mano (ej. transferencia confirmada),
+  // el pedido entra al pool de repartidores: hay que avisarles.
+  if (status === "pagado" && current.order.status !== "pagado") {
+    await notifyRidersOfNewOrder();
+  }
 }
 
 // Desasigna el repartidor y vuelve el pedido al pool ("pagado") para que
@@ -39,4 +46,5 @@ export async function releaseOrderAction(formData: FormData): Promise<void> {
   await releaseOrderFromRider(id);
   revalidatePath("/admin/pedidos");
   revalidatePath(`/admin/pedidos/${id}`);
+  await notifyRidersOfNewOrder();
 }

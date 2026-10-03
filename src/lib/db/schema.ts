@@ -65,6 +65,17 @@ export const riders = sqliteTable("riders", {
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
+export const pushSubscriptions = sqliteTable("push_subscriptions", {
+  id: text("id").primaryKey(),
+  riderId: text("rider_id")
+    .notNull()
+    .references(() => riders.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});
+
 export const banners = sqliteTable("banners", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
@@ -85,3 +96,5 @@ export type BannerRow = typeof banners.$inferSelect;
 export type NewBannerRow = typeof banners.$inferInsert;
 export type RiderRow = typeof riders.$inferSelect;
 export type NewRiderRow = typeof riders.$inferInsert;
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
+export type NewPushSubscriptionRow = typeof pushSubscriptions.$inferInsert;
