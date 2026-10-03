@@ -31,13 +31,14 @@ export const orders = sqliteTable("orders", {
     enum: ["mercadopago", "transferencia"],
   }).notNull(),
   status: text("status", {
-    enum: ["pendiente_pago", "pagado", "entregado", "cancelado"],
+    enum: ["pendiente_pago", "pagado", "en_camino", "entregado", "cancelado"],
   })
     .notNull()
     .default("pendiente_pago"),
   total: real("total").notNull(),
   mpPreferenceId: text("mp_preference_id"),
   mpPaymentId: text("mp_payment_id"),
+  riderId: text("rider_id"),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
   updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`),
 });
@@ -52,6 +53,16 @@ export const orderItems = sqliteTable("order_items", {
   unitPrice: real("unit_price").notNull(),
   unitCost: real("unit_cost").notNull(),
   quantity: integer("quantity").notNull(),
+});
+
+export const riders = sqliteTable("riders", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
 export const banners = sqliteTable("banners", {
@@ -72,3 +83,5 @@ export type OrderItemRow = typeof orderItems.$inferSelect;
 export type NewOrderItemRow = typeof orderItems.$inferInsert;
 export type BannerRow = typeof banners.$inferSelect;
 export type NewBannerRow = typeof banners.$inferInsert;
+export type RiderRow = typeof riders.$inferSelect;
+export type NewRiderRow = typeof riders.$inferInsert;

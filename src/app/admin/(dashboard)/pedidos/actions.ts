@@ -1,9 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getOrderWithItems, restoreStockForOrder, updateOrderStatus } from "@/lib/db/queries";
+import {
+  getOrderWithItems,
+  releaseOrderFromRider,
+  restoreStockForOrder,
+  updateOrderStatus,
+} from "@/lib/db/queries";
 
-const VALID_STATUSES = ["pendiente_pago", "pagado", "entregado", "cancelado"];
+const VALID_STATUSES = ["pendiente_pago", "pagado", "en_camino", "entregado", "cancelado"];
 
 export async function changeOrderStatusAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
@@ -23,4 +28,15 @@ export async function changeOrderStatusAction(formData: FormData): Promise<void>
   revalidatePath("/admin/pedidos");
   revalidatePath(`/admin/pedidos/${id}`);
   revalidatePath("/admin");
+}
+
+// Desasigna el repartidor y vuelve el pedido al pool ("pagado") para que
+// otro repartidor lo pueda tomar.
+export async function releaseOrderAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  await releaseOrderFromRider(id);
+  revalidatePath("/admin/pedidos");
+  revalidatePath(`/admin/pedidos/${id}`);
 }

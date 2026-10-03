@@ -1,8 +1,8 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "./client";
-import { banners, orderItems, orders, products } from "./schema";
-import type { NewBannerRow, NewProductRow, ProductRow } from "./schema";
+import { banners, orderItems, orders, products, riders } from "./schema";
+import type { NewBannerRow, NewProductRow, NewRiderRow, ProductRow, RiderRow } from "./schema";
 import { isWithinSchedule } from "@/lib/schedule";
 
 // orders.createdAt se guarda con el formato de SQLite CURRENT_TIMESTAMP
@@ -129,6 +129,113 @@ export async function restoreStockForOrder(orderId: string): Promise<void> {
   }
 }
 
+// ---------- Repartidores ----------
+
+export async function getAllRiders(): Promise<RiderRow[]> {
+  return db.select().from(riders).orderBy(asc(riders.name));
+}
+
+export async function getRiderById(id: string): Promise<RiderRow | undefined> {
+  return (await db.select().from(riders).where(eq(riders.id, id)).limit(1))[0];
+}
+
+export async function getRiderByUsername(username: string): Promise<RiderRow | undefined> {
+  return (await db.select().from(riders).where(eq(riders.username, username)).limit(1))[0];
+}
+
+export type RiderInput = {
+  name: string;
+  phone: string;
+  username: string;
+  active: boolean;
+};
+
+export async function createRider(
+  input: RiderInput & { passwordHash: string }
+): Promise<string> {
+  const id = randomUUID();
+  const row: NewRiderRow = { id, ...input };
+  await db.insert(riders).values(row);
+  return id;
+}
+
+export async function updateRider(
+  id: string,
+  input: RiderInput & { passwordHash?: string }
+): Promise<void> {
+  await db.update(riders).set(input).where(eq(riders.id, id));
+}
+
+export async function deleteRider(id: string): Promise<void> {
+  await db.delete(riders).where(eq(riders.id, id));
+}
+
+// Pedidos pagados y sin repartidor asignado: el "pool" que ven todos los
+// repartidores activos para aceptar.
+export async function getAvailableOrdersForRiders() {
+  return db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.status, "pagado"), isNull(orders.riderId)))
+    .orderBy(asc(orders.createdAt));
+}
+
+// Intenta asignar el pedido a este repartidor de forma atómica: solo tiene
+// éxito si nadie se lo llevó antes (rider_id todavía es null). El primero
+// que llega, gana la carrera.
+export async function claimOrderForRider(orderId: string, riderId: string): Promise<boolean> {
+  const result = await db
+    .update(orders)
+    .set({ riderId, status: "en_camino", updatedAt: sql`(current_timestamp)` })
+    .where(
+      and(eq(orders.id, orderId), isNull(orders.riderId), eq(orders.status, "pagado"))
+    );
+  return result.rowsAffected > 0;
+}
+
+export async function getActiveDeliveriesForRider(riderId: string) {
+  return db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.riderId, riderId), eq(orders.status, "en_camino")))
+    .orderBy(asc(orders.updatedAt));
+}
+
+export async function getDeliveryHistoryForRider(riderId: string, limit = 20) {
+  return db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.riderId, riderId), eq(orders.status, "entregado")))
+    .orderBy(desc(orders.updatedAt))
+    .limit(limit);
+}
+
+// Un repartidor solo puede marcar como entregado un pedido que es suyo.
+export async function markOrderDeliveredByRider(
+  orderId: string,
+  riderId: string
+): Promise<boolean> {
+  const result = await db
+    .update(orders)
+    .set({ status: "entregado", updatedAt: sql`(current_timestamp)` })
+    .where(and(eq(orders.id, orderId), eq(orders.riderId, riderId)));
+  return result.rowsAffected > 0;
+}
+
+export async function getItemsForOrders(orderIds: string[]) {
+  if (!orderIds.length) return [];
+  return db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds));
+}
+
+// Admin: libera un pedido (vuelve al pool) si el repartidor no lo puede
+// completar.
+export async function releaseOrderFromRider(orderId: string): Promise<void> {
+  await db
+    .update(orders)
+    .set({ riderId: null, status: "pagado", updatedAt: sql`(current_timestamp)` })
+    .where(eq(orders.id, orderId));
+}
+
 // ---------- Banners ----------
 
 export async function getActiveBanners() {
@@ -167,7 +274,7 @@ export async function deleteBanner(id: string): Promise<void> {
 // ---------- Reportes ----------
 
 export async function getSalesReport(fromISO: string, toISO: string) {
-  const paidStatuses = ["pagado", "entregado"] as const;
+  const paidStatuses = ["pagado", "en_camino", "entregado"] as const;
   const rows = await db
     .select()
     .from(orders)

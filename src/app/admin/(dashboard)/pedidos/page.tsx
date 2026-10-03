@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listOrders } from "@/lib/db/queries";
+import { getAllRiders, listOrders } from "@/lib/db/queries";
 import { formatPrice } from "@/config/site";
 import {
   ORDER_STATUSES,
@@ -16,7 +16,8 @@ export default async function AdminOrdersPage(
   const statusFilter =
     typeof searchParams.status === "string" ? searchParams.status : undefined;
 
-  const orderList = await listOrders(statusFilter);
+  const [orderList, riderList] = await Promise.all([listOrders(statusFilter), getAllRiders()]);
+  const riderNames = new Map(riderList.map((r) => [r.id, r.name]));
 
   return (
     <div>
@@ -51,6 +52,9 @@ export default async function AdminOrdersPage(
               <p className="text-xs text-zinc-500">
                 {PAYMENT_METHOD_LABELS[order.paymentMethod]} ·{" "}
                 {formatArgentinaDateTime(order.createdAt)}
+                {order.riderId && (
+                  <> · 🛵 {riderNames.get(order.riderId) ?? "Repartidor"}</>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-3">
