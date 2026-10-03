@@ -51,9 +51,12 @@ export function HomeClient({ products, categories, banners }: Props) {
         <ProductGrid products={visibleProducts} />
       </main>
 
-      <footer className="px-4 py-6 text-center">
+      <footer className="flex items-center justify-center gap-4 px-4 py-6 text-center">
         <Link href="/admin" className="text-xs text-zinc-400 underline underline-offset-2">
           Admin
+        </Link>
+        <Link href="/rider" className="text-xs text-zinc-400 underline underline-offset-2">
+          Repartidores
         </Link>
       </footer>
 
