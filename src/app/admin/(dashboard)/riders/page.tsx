@@ -11,7 +11,7 @@ export default async function AdminRidersPage() {
 
   return (
     <div>
-      <h1 className="text-lg font-bold text-zinc-800">Repartidores</h1>
+      <h1 className="text-2xl font-extrabold text-zinc-900">Repartidores</h1>
       <p className="mt-1 text-sm text-zinc-500">
         Cada repartidor entra a <span className="font-mono text-xs">/rider</span> con
         su usuario y contraseña, ve los pedidos disponibles y acepta el que quiera.

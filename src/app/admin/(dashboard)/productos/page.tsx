@@ -12,7 +12,7 @@ export default async function AdminProductsPage() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-zinc-800">Productos</h1>
+        <h1 className="text-2xl font-extrabold text-zinc-900">Productos</h1>
         <Link
           href="/admin/productos/nuevo"
           className="rounded-full bg-orange-600 px-4 py-2 text-sm font-bold text-white"

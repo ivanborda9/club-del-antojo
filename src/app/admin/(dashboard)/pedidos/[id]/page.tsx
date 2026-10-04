@@ -23,7 +23,7 @@ export default async function OrderDetailPage(
   return (
     <div className="max-w-lg">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-zinc-800">Pedido</h1>
+        <h1 className="text-2xl font-extrabold text-zinc-900">Pedido</h1>
         <span
           className={`rounded-full px-3 py-1 text-xs font-medium ${ORDER_STATUS_STYLES[order.status]}`}
         >

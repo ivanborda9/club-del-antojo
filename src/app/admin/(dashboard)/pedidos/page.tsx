@@ -21,7 +21,7 @@ export default async function AdminOrdersPage(
 
   return (
     <div>
-      <h1 className="text-lg font-bold text-zinc-800">Pedidos</h1>
+      <h1 className="text-2xl font-extrabold text-zinc-900">Pedidos</h1>
 
       <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
         <FilterTab href="/admin/pedidos" label="Todos" active={!statusFilter} />

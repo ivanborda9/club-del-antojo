@@ -19,37 +19,37 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="text-lg font-bold text-zinc-800">Panel</h1>
+      <h1 className="text-2xl font-extrabold text-zinc-900">Panel</h1>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Ventas de hoy" value={formatPrice(todayReport.revenue)} />
-        <Stat label="Ganancia de hoy" value={formatPrice(todayReport.profit)} accent />
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat icon="💰" label="Ventas de hoy" value={formatPrice(todayReport.revenue)} />
+        <Stat icon="📈" label="Ganancia de hoy" value={formatPrice(todayReport.profit)} accent />
         <Link href="/admin/pedidos?status=pendiente_pago">
-          <Stat label="Pedidos pendientes" value={String(pendingOrders.length)} warn />
+          <Stat icon="⏳" label="Pedidos pendientes" value={String(pendingOrders.length)} warn />
         </Link>
         <Link href="/admin/reportes">
-          <Stat label="Productos con stock bajo" value={String(lowStock.length)} warn />
+          <Stat icon="📦" label="Stock bajo" value={String(lowStock.length)} warn />
         </Link>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Link
           href="/admin/productos/nuevo"
-          className="rounded-full bg-orange-600 px-4 py-2 text-sm font-bold text-white"
+          className="flex items-center gap-2 rounded-full bg-orange-600 px-5 py-3 text-base font-bold text-white"
         >
-          + Cargar producto
+          <span className="text-lg">➕</span> Cargar producto
         </Link>
         <Link
           href="/admin/pedidos"
-          className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700"
+          className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-3 text-base font-semibold text-zinc-700"
         >
-          Ver todos los pedidos
+          <span className="text-lg">🧾</span> Pedidos
         </Link>
         <Link
           href="/admin/reportes"
-          className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700"
+          className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-3 text-base font-semibold text-zinc-700"
         >
-          Ver reportes
+          <span className="text-lg">📊</span> Reportes
         </Link>
       </div>
 
@@ -73,22 +73,25 @@ export default async function AdminDashboardPage() {
 }
 
 function Stat({
+  icon,
   label,
   value,
   accent,
   warn,
 }: {
+  icon: string;
   label: string;
   value: string;
   accent?: boolean;
   warn?: boolean;
 }) {
   return (
-    <div className="h-full rounded-2xl border border-zinc-200 bg-white p-3">
-      <p className="text-xs text-zinc-500">{label}</p>
+    <div className="h-full rounded-2xl border border-zinc-200 bg-white p-4">
+      <span className="text-2xl">{icon}</span>
+      <p className="mt-1 text-xs font-medium text-zinc-500">{label}</p>
       <p
-        className={`mt-1 text-lg font-bold ${
-          accent ? "text-emerald-600" : warn ? "text-amber-600" : "text-zinc-800"
+        className={`mt-0.5 text-2xl font-extrabold ${
+          accent ? "text-emerald-600" : warn ? "text-amber-600" : "text-zinc-900"
         }`}
       >
         {value}

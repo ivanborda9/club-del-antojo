@@ -6,7 +6,7 @@ export default async function AdminBannersPage() {
 
   return (
     <div>
-      <h1 className="text-lg font-bold text-zinc-800">Banners de ofertas</h1>
+      <h1 className="text-2xl font-extrabold text-zinc-900">Banners de ofertas</h1>
       <p className="mt-1 text-sm text-zinc-500">
         Se muestran arriba del catálogo en la tienda, en el orden que indiques.
       </p>

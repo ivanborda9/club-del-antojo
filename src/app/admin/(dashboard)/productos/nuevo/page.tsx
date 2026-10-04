@@ -8,7 +8,7 @@ export default async function NewProductPage() {
 
   return (
     <div>
-      <h1 className="text-lg font-bold text-zinc-800">Nuevo producto</h1>
+      <h1 className="text-2xl font-extrabold text-zinc-900">Nuevo producto</h1>
       <div className="mt-4">
         <ProductForm action={createProductAction} categories={categories} />
       </div>

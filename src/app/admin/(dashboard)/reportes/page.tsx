@@ -28,7 +28,7 @@ export default async function AdminReportsPage(
 
   return (
     <div>
-      <h1 className="text-lg font-bold text-zinc-800">Reportes de ventas</h1>
+      <h1 className="text-2xl font-extrabold text-zinc-900">Reportes de ventas</h1>
 
       <form className="mt-3 flex flex-wrap items-end gap-3">
         <label className="block">

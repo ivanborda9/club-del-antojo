@@ -3,6 +3,35 @@
 import { useEffect, useState } from "react";
 
 type Status = "checking" | "unsupported" | "off" | "on" | "denied" | "saving" | "error";
+type Platform = "ios" | "android" | "desktop";
+
+function detectPlatform(): Platform {
+  if (typeof navigator === "undefined") return "desktop";
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua)) return "ios";
+  if (/Android/.test(ua)) return "android";
+  return "desktop";
+}
+
+const SETTINGS_STEPS: Record<Platform, string[]> = {
+  ios: [
+    "Abrí la app Ajustes del iPhone.",
+    "Buscá \"Repartidores\" (o Safari) en la lista.",
+    "Entrá a Notificaciones y activá \"Permitir notificaciones\".",
+    "Si no aparece: borrá el ícono de la pantalla de inicio y volvé a agregarlo desde Safari (compartir → Agregar a inicio).",
+  ],
+  android: [
+    "Tocá el candado 🔒 o el ícono (ⓘ) al lado de la dirección, arriba del navegador.",
+    "Entrá a \"Permisos\" o \"Información del sitio\".",
+    "Buscá \"Notificaciones\" y elegí \"Permitir\".",
+    "Volvé acá y tocá \"Ya las activé\" abajo.",
+  ],
+  desktop: [
+    "Hacé clic en el candado 🔒 junto a la dirección del sitio.",
+    "Buscá \"Notificaciones\" y cambiala a \"Permitir\".",
+    "Volvé acá y hacé clic en \"Ya las activé\" abajo.",
+  ],
+};
 
 function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -27,6 +56,8 @@ function getInitialStatus(vapidPublicKey: string | null): Status {
 
 export function NotificationBell({ vapidPublicKey }: { vapidPublicKey: string | null }) {
   const [status, setStatus] = useState<Status>(() => getInitialStatus(vapidPublicKey));
+  const [showHelp, setShowHelp] = useState(false);
+  const [platform] = useState<Platform>(() => detectPlatform());
 
   useEffect(() => {
     if (status !== "checking") return;
@@ -93,6 +124,17 @@ export function NotificationBell({ vapidPublicKey }: { vapidPublicKey: string | 
     else if (status === "off" || status === "error") activar();
   }
 
+  // Después de que el repartidor cambia el permiso a mano desde la
+  // configuración del navegador, no hay forma de que la página se entere
+  // sola — hay que volver a leer Notification.permission.
+  async function revisarDeNuevo() {
+    if (Notification.permission === "granted") {
+      await activar();
+    } else {
+      setStatus(getInitialStatus(vapidPublicKey));
+    }
+  }
+
   if (status === "checking") return null;
 
   const isOn = status === "on";
@@ -122,9 +164,33 @@ export function NotificationBell({ vapidPublicKey }: { vapidPublicKey: string | 
       )}
 
       {status === "denied" && (
-        <p className="max-w-[220px] rounded-xl bg-amber-50 p-2 text-right text-xs text-amber-700">
-          🔕 Notificaciones bloqueadas. Activalas desde la configuración del navegador.
-        </p>
+        <div className="max-w-[260px] rounded-xl bg-amber-50 p-3 text-right text-xs text-amber-700">
+          <p>🔕 Notificaciones bloqueadas para este sitio.</p>
+          <button
+            type="button"
+            onClick={() => setShowHelp((v) => !v)}
+            className="mt-1 font-semibold underline underline-offset-2"
+          >
+            {showHelp ? "Ocultar pasos" : "¿Cómo las activo?"}
+          </button>
+
+          {showHelp && (
+            <div className="mt-2 text-left">
+              <ol className="list-decimal space-y-1 pl-4">
+                {SETTINGS_STEPS[platform].map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ol>
+              <button
+                type="button"
+                onClick={revisarDeNuevo}
+                className="mt-2 w-full rounded-full bg-amber-600 py-1.5 text-center font-semibold text-white"
+              >
+                Ya las activé
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {status === "off" && (
