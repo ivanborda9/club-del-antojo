@@ -125,6 +125,16 @@ export async function updateOrderStatus(id: string, status: string): Promise<voi
     .where(eq(orders.id, id));
 }
 
+// Pedidos pagados (confirmados) que todavía no salieron con un repartidor:
+// el contador de "pedido nuevo" que se muestra como notificación en el admin.
+export async function getNewOrdersCount(): Promise<number> {
+  const rows = await db
+    .select({ id: orders.id })
+    .from(orders)
+    .where(eq(orders.status, "pagado"));
+  return rows.length;
+}
+
 // Restaura el stock de todos los items de un pedido (usado al cancelar).
 export async function restoreStockForOrder(orderId: string): Promise<void> {
   const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));

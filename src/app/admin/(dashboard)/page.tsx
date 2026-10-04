@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   getLowStockProducts,
+  getNewOrdersCount,
   getSalesReport,
   listOrders,
   toSqliteTimestamp,
@@ -11,15 +12,33 @@ import { getArgentinaTodayBoundsUTC } from "@/lib/timezone";
 export default async function AdminDashboardPage() {
   const { start, end } = getArgentinaTodayBoundsUTC();
 
-  const [todayReport, pendingOrders, lowStock] = await Promise.all([
+  const [todayReport, pendingOrders, lowStock, newOrdersCount] = await Promise.all([
     getSalesReport(toSqliteTimestamp(start), toSqliteTimestamp(end)),
     listOrders("pendiente_pago"),
     getLowStockProducts(),
+    getNewOrdersCount(),
   ]);
 
   return (
     <div>
       <h1 className="text-2xl font-extrabold text-zinc-900">Panel</h1>
+
+      {newOrdersCount > 0 && (
+        <Link
+          href="/admin/pedidos?status=pagado"
+          className="mt-4 flex items-center gap-3 rounded-2xl bg-red-600 p-4 text-white shadow-sm active:scale-[0.99] transition"
+        >
+          <span className="text-3xl">📬</span>
+          <div>
+            <p className="text-base font-extrabold">
+              {newOrdersCount === 1
+                ? "¡Tenés un pedido nuevo!"
+                : `¡Tenés ${newOrdersCount} pedidos nuevos!`}
+            </p>
+            <p className="text-xs text-red-100">Tocá para verlos</p>
+          </div>
+        </Link>
+      )}
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat icon="💰" label="Ventas de hoy" value={formatPrice(todayReport.revenue)} />
