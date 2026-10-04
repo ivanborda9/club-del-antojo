@@ -277,6 +277,15 @@ export async function deletePushSubscriptionByEndpoint(endpoint: string): Promis
   await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
 }
 
+// Para el panel admin: qué repartidores tienen notificaciones push activas
+// (al menos una suscripción guardada) en este momento.
+export async function getRiderIdsWithPushSubscription(): Promise<Set<string>> {
+  const rows = await db
+    .selectDistinct({ riderId: pushSubscriptions.riderId })
+    .from(pushSubscriptions);
+  return new Set(rows.map((r) => r.riderId));
+}
+
 // Suscripciones de todos los repartidores activos: a quién avisarle cuando
 // entra un pedido nuevo al pool.
 export async function getPushSubscriptionsForActiveRiders() {

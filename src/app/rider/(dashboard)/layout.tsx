@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getRiderById } from "@/lib/db/queries";
 import { getRiderSession } from "@/lib/riderAuth";
 import { RiderLogoutButton } from "@/components/rider/RiderLogoutButton";
+import { NotificationBell } from "@/components/rider/NotificationBell";
 
 export default async function RiderDashboardLayout({
   children,
@@ -22,7 +23,10 @@ export default async function RiderDashboardLayout({
             <p className="text-sm font-bold text-orange-600">Club del Antojo</p>
             <p className="text-xs text-zinc-500">Hola, {rider.name}</p>
           </div>
-          <RiderLogoutButton />
+          <div className="flex items-center gap-3">
+            <NotificationBell vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+            <RiderLogoutButton />
+          </div>
         </div>
       </header>
 

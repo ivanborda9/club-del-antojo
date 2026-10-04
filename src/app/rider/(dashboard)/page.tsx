@@ -9,7 +9,6 @@ import { formatPrice } from "@/config/site";
 import { formatArgentinaDateTime } from "@/lib/timezone";
 import { PAYMENT_METHOD_LABELS } from "@/lib/orderStatus";
 import { RiderAutoRefresh } from "@/components/rider/RiderAutoRefresh";
-import { PushSubscribeButton } from "@/components/rider/PushSubscribeButton";
 import { claimOrderAction, markDeliveredAction } from "./actions";
 import type { OrderRow, OrderItemRow } from "@/lib/db/schema";
 
@@ -40,8 +39,6 @@ export default async function RiderDashboardPage(props: PageProps<"/rider">) {
   return (
     <div className="space-y-6 pb-6">
       <RiderAutoRefresh />
-
-      <PushSubscribeButton vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
 
       {claimError && (
         <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">

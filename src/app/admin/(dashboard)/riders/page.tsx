@@ -1,10 +1,13 @@
-import { getAllRiders } from "@/lib/db/queries";
+import { getAllRiders, getRiderIdsWithPushSubscription } from "@/lib/db/queries";
 import { RiderCreateForm } from "@/components/admin/RiderCreateForm";
 import { DeleteRiderButton } from "@/components/admin/DeleteRiderButton";
 import { toggleRiderActiveAction } from "./actions";
 
 export default async function AdminRidersPage() {
-  const riderList = await getAllRiders();
+  const [riderList, ridersWithPush] = await Promise.all([
+    getAllRiders(),
+    getRiderIdsWithPushSubscription(),
+  ]);
 
   return (
     <div>
@@ -29,6 +32,15 @@ export default async function AdminRidersPage() {
               <p className="text-sm font-semibold text-zinc-800">{rider.name}</p>
               <p className="text-xs text-zinc-500">
                 @{rider.username} · {rider.phone}
+              </p>
+              <p
+                className={`mt-1 text-xs font-medium ${
+                  ridersWithPush.has(rider.id) ? "text-emerald-600" : "text-zinc-400"
+                }`}
+              >
+                {ridersWithPush.has(rider.id)
+                  ? "🔔 Notificaciones activas"
+                  : "🔕 Sin notificaciones activas"}
               </p>
             </div>
             <div className="flex items-center gap-2">
