@@ -62,6 +62,7 @@ export const riders = sqliteTable("riders", {
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
+  lastSeenAt: text("last_seen_at"),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 

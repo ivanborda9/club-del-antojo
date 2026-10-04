@@ -173,6 +173,15 @@ export async function updateRider(
   await db.update(riders).set(input).where(eq(riders.id, id));
 }
 
+// Se llama cada vez que el repartidor abre su app, para que el admin vea
+// quién está conectado ahora mismo.
+export async function touchRiderLastSeen(id: string): Promise<void> {
+  await db
+    .update(riders)
+    .set({ lastSeenAt: sql`(current_timestamp)` })
+    .where(eq(riders.id, id));
+}
+
 export async function deleteRider(id: string): Promise<void> {
   await db.delete(riders).where(eq(riders.id, id));
 }

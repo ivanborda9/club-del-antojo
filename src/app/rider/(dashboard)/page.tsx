@@ -41,19 +41,25 @@ export default async function RiderDashboardPage(props: PageProps<"/rider">) {
       <RiderAutoRefresh />
 
       {claimError && (
-        <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-          Ese pedido ya lo tomó otro repartidor. Elegí otro de la lista.
+        <p className="rounded-2xl bg-red-50 p-3 text-sm font-medium text-red-700">
+          ⚠️ Ese pedido ya lo tomó otro repartidor. Elegí otro de la lista.
         </p>
       )}
 
       <section>
-        <h2 className="text-sm font-bold text-zinc-800">
-          Mis entregas en curso ({mine.length})
-        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🛵</span>
+          <h2 className="text-xl font-extrabold text-zinc-900">Mis entregas en curso</h2>
+          <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-indigo-600 px-2 text-sm font-bold text-white">
+            {mine.length}
+          </span>
+        </div>
         {mine.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">No tenés entregas en curso.</p>
+          <p className="mt-2 rounded-2xl bg-white p-4 text-center text-sm text-zinc-500">
+            No tenés entregas en curso.
+          </p>
         ) : (
-          <div className="mt-2 space-y-3">
+          <div className="mt-3 space-y-3">
             {mine.map((order) => (
               <ActiveDeliveryCard
                 key={order.id}
@@ -66,15 +72,19 @@ export default async function RiderDashboardPage(props: PageProps<"/rider">) {
       </section>
 
       <section>
-        <h2 className="text-sm font-bold text-zinc-800">
-          Pedidos disponibles ({pool.length})
-        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">📦</span>
+          <h2 className="text-xl font-extrabold text-zinc-900">Pedidos disponibles</h2>
+          <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-orange-600 px-2 text-sm font-bold text-white">
+            {pool.length}
+          </span>
+        </div>
         {pool.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">
-            No hay pedidos esperando reparto ahora. Esta pantalla se actualiza sola.
+          <p className="mt-2 rounded-2xl bg-white p-4 text-center text-sm text-zinc-500">
+            No hay pedidos esperando reparto ahora. Esta pantalla se actualiza sola. 🔄
           </p>
         ) : (
-          <div className="mt-2 space-y-3">
+          <div className="mt-3 space-y-3">
             {pool.map((order) => (
               <PoolOrderCard key={order.id} order={order} />
             ))}
@@ -87,16 +97,19 @@ export default async function RiderDashboardPage(props: PageProps<"/rider">) {
 
 function PoolOrderCard({ order }: { order: OrderRow }) {
   return (
-    <div className="rounded-2xl border border-orange-100 bg-white p-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-semibold text-zinc-800">{order.address}</p>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            {PAYMENT_METHOD_LABELS[order.paymentMethod]} ·{" "}
-            {formatArgentinaDateTime(order.createdAt)}
-          </p>
+    <div className="rounded-2xl border-2 border-orange-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2.5">
+          <span className="text-2xl">📍</span>
+          <div>
+            <p className="text-base font-bold text-zinc-900">{order.address}</p>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              {PAYMENT_METHOD_LABELS[order.paymentMethod]} ·{" "}
+              {formatArgentinaDateTime(order.createdAt)}
+            </p>
+          </div>
         </div>
-        <span className="shrink-0 text-sm font-bold text-orange-600">
+        <span className="shrink-0 text-xl font-extrabold text-orange-600">
           {formatPrice(order.total)}
         </span>
       </div>
@@ -104,9 +117,9 @@ function PoolOrderCard({ order }: { order: OrderRow }) {
         <input type="hidden" name="orderId" value={order.id} />
         <button
           type="submit"
-          className="flex h-10 w-full items-center justify-center rounded-full bg-orange-600 text-sm font-bold text-white active:scale-[0.98] transition"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-orange-600 text-base font-bold text-white active:scale-[0.98] transition"
         >
-          Aceptar pedido
+          ✅ Aceptar pedido
         </button>
       </form>
     </div>
@@ -121,12 +134,17 @@ function ActiveDeliveryCard({
   items: OrderItemRow[];
 }) {
   return (
-    <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-3">
-      <p className="text-sm font-semibold text-zinc-800">{order.customerName}</p>
-      <p className="text-sm text-zinc-600">{order.address}</p>
-      {order.notes && <p className="mt-1 text-xs text-zinc-500">Notas: {order.notes}</p>}
+    <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-4 shadow-sm">
+      <div className="flex items-start gap-2.5">
+        <span className="text-2xl">🛵</span>
+        <div>
+          <p className="text-base font-bold text-zinc-900">{order.customerName}</p>
+          <p className="text-sm text-zinc-600">{order.address}</p>
+          {order.notes && <p className="mt-1 text-xs text-zinc-500">📝 {order.notes}</p>}
+        </div>
+      </div>
 
-      <ul className="mt-2 space-y-0.5 text-xs text-zinc-600">
+      <ul className="mt-2 space-y-0.5 text-sm text-zinc-600">
         {items.map((item) => (
           <li key={item.id}>
             {item.quantity}x {item.productName}
@@ -134,7 +152,7 @@ function ActiveDeliveryCard({
         ))}
       </ul>
 
-      <div className="mt-2 flex items-center justify-between text-sm font-bold text-zinc-800">
+      <div className="mt-2 flex items-center justify-between text-lg font-extrabold text-zinc-900">
         <span>Total</span>
         <span>{formatPrice(order.total)}</span>
       </div>
@@ -144,13 +162,13 @@ function ActiveDeliveryCard({
           href={mapsLink(order.address)}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex h-10 items-center justify-center rounded-full border border-indigo-300 bg-white text-sm font-semibold text-indigo-700"
+          className="flex h-12 items-center justify-center gap-1.5 rounded-full border-2 border-indigo-300 bg-white text-base font-semibold text-indigo-700"
         >
           📍 Mapa
         </a>
         <a
           href={`tel:${order.phone}`}
-          className="flex h-10 items-center justify-center rounded-full border border-indigo-300 bg-white text-sm font-semibold text-indigo-700"
+          className="flex h-12 items-center justify-center gap-1.5 rounded-full border-2 border-indigo-300 bg-white text-base font-semibold text-indigo-700"
         >
           📞 Llamar
         </a>
@@ -160,9 +178,9 @@ function ActiveDeliveryCard({
         <input type="hidden" name="orderId" value={order.id} />
         <button
           type="submit"
-          className="flex h-10 w-full items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white active:scale-[0.98] transition"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-indigo-600 text-base font-bold text-white active:scale-[0.98] transition"
         >
-          Marcar entregado
+          🏁 Marcar entregado
         </button>
       </form>
     </div>

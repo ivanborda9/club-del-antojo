@@ -147,7 +147,7 @@ export function NotificationBell({ vapidPublicKey }: { vapidPublicKey: string | 
         onClick={toggle}
         disabled={isBusy || status === "unsupported" || status === "denied"}
         title={isOn ? "Desactivar notificaciones" : "Activar notificaciones"}
-        className={`flex h-10 w-10 items-center justify-center rounded-full border text-lg transition disabled:opacity-60 ${
+        className={`flex h-11 w-11 items-center justify-center rounded-full border text-xl transition disabled:opacity-60 ${
           isOn
             ? "border-orange-300 bg-orange-50 text-orange-600"
             : "border-zinc-200 bg-zinc-100 text-zinc-400"
