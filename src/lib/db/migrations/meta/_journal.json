@@ -43,6 +43,13 @@
       "when": 1791121010765,
       "tag": "0005_slow_blur",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791491780222,
+      "tag": "0006_large_roulette",
+      "breakpoints": true
     }
   ]
 }

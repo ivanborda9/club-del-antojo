@@ -3,8 +3,10 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
+  clearCategorySchedule,
   createProduct,
   deleteProduct,
+  setCategorySchedule,
   updateProduct,
   type ProductInput,
 } from "@/lib/db/queries";
@@ -88,6 +90,26 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteProduct(id);
+  revalidatePath("/admin/productos");
+  revalidatePath("/");
+}
+
+export async function setCategoryScheduleAction(formData: FormData): Promise<void> {
+  const category = String(formData.get("category") ?? "").trim();
+  const scheduleStart = String(formData.get("scheduleStart") ?? "").trim();
+  const scheduleEnd = String(formData.get("scheduleEnd") ?? "").trim();
+  if (!category || !scheduleStart || !scheduleEnd) return;
+
+  await setCategorySchedule(category, scheduleStart, scheduleEnd);
+  revalidatePath("/admin/productos");
+  revalidatePath("/");
+}
+
+export async function clearCategoryScheduleAction(formData: FormData): Promise<void> {
+  const category = String(formData.get("category") ?? "").trim();
+  if (!category) return;
+
+  await clearCategorySchedule(category);
   revalidatePath("/admin/productos");
   revalidatePath("/");
 }

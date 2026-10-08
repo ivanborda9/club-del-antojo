@@ -5,14 +5,27 @@ import { formatPrice } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import type { Product } from "@/types";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+  highlighted,
+}: {
+  product: Product;
+  highlighted?: boolean;
+}) {
   const { items, addItem, setQuantity } = useCart();
   const inCart = items.find((item) => item.product.id === product.id);
   const outOfStock = product.stock <= 0;
   const atMaxStock = !!inCart && inCart.quantity >= product.stock;
 
   return (
-    <div className="flex flex-col rounded-2xl border border-orange-100 bg-white p-3 shadow-sm">
+    <div
+      id={`product-${product.id}`}
+      className={`flex flex-col rounded-2xl border bg-white p-3 shadow-sm transition ${
+        highlighted
+          ? "border-orange-500 ring-2 ring-orange-400"
+          : "border-orange-100"
+      }`}
+    >
       <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-4xl">
         {product.imageUrl ? (
           <Image

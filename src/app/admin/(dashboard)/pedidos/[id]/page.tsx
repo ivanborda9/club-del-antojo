@@ -8,6 +8,7 @@ import {
   PAYMENT_METHOD_LABELS,
 } from "@/lib/orderStatus";
 import { formatArgentinaDateTime } from "@/lib/timezone";
+import { DeleteOrderButton } from "@/components/admin/DeleteOrderButton";
 import { changeOrderStatusAction, releaseOrderAction } from "../actions";
 
 export default async function OrderDetailPage(
@@ -103,6 +104,14 @@ export default async function OrderDetailPage(
         </div>
         <p className="mt-2 text-xs text-zinc-400">
           Cancelar un pedido devuelve automáticamente el stock reservado.
+        </p>
+      </div>
+
+      <div className="mt-4">
+        <DeleteOrderButton id={order.id} customerName={order.customerName} />
+        <p className="mt-2 text-center text-xs text-zinc-400">
+          Para pedidos de prueba u otros que quieras sacar de la lista. No devuelve
+          stock — si hace falta, cancelá el pedido antes de borrarlo.
         </p>
       </div>
     </div>

@@ -1,8 +1,10 @@
-import { getAllBanners } from "@/lib/db/queries";
+import { getAllBanners, getAllProducts } from "@/lib/db/queries";
 import { createBannerAction, deleteBannerAction, toggleBannerAction } from "./actions";
+import { BannerCreateForm } from "@/components/admin/BannerCreateForm";
 
 export default async function AdminBannersPage() {
-  const bannerList = await getAllBanners();
+  const [bannerList, productList] = await Promise.all([getAllBanners(), getAllProducts()]);
+  const categories = Array.from(new Set(productList.map((p) => p.category)));
 
   return (
     <div>
@@ -11,38 +13,11 @@ export default async function AdminBannersPage() {
         Se muestran arriba del catálogo en la tienda, en el orden que indiques.
       </p>
 
-      <form
+      <BannerCreateForm
         action={createBannerAction}
-        className="mt-4 max-w-lg space-y-3 rounded-2xl border border-zinc-200 bg-white p-4"
-      >
-        <p className="text-sm font-semibold text-zinc-800">Nuevo banner</p>
-        <div className="grid grid-cols-[1fr_auto] gap-3">
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-zinc-600">Título</span>
-            <input name="title" required className="input" placeholder="2x1 en golosinas" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-zinc-600">Emoji</span>
-            <input name="emoji" defaultValue="🎉" className="input w-16 text-center" />
-          </label>
-        </div>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-zinc-600">
-            Subtítulo (opcional)
-          </span>
-          <input name="subtitle" className="input" placeholder="Válido hasta el domingo" />
-        </label>
-        <label className="block max-w-32">
-          <span className="mb-1 block text-xs font-medium text-zinc-600">Orden</span>
-          <input name="sortOrder" type="number" defaultValue={0} className="input" />
-        </label>
-        <button
-          type="submit"
-          className="h-10 rounded-full bg-orange-600 px-5 text-sm font-bold text-white"
-        >
-          Agregar banner
-        </button>
-      </form>
+        products={productList}
+        categories={categories}
+      />
 
       <div className="mt-4 space-y-2">
         {bannerList.length === 0 && (
@@ -60,6 +35,23 @@ export default async function AdminBannersPage() {
                 {banner.subtitle && (
                   <p className="text-xs text-zinc-500">{banner.subtitle}</p>
                 )}
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {banner.linkType === "product" && (
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
+                      🔗 Producto: {productList.find((p) => p.id === banner.linkValue)?.name ?? banner.linkValue}
+                    </span>
+                  )}
+                  {banner.linkType === "category" && (
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
+                      🔗 Categoría: {banner.linkValue}
+                    </span>
+                  )}
+                  {banner.scheduleStart && banner.scheduleEnd && (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
+                      ⏰ {banner.scheduleStart}–{banner.scheduleEnd}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -70,6 +62,10 @@ export default async function AdminBannersPage() {
                 <input type="hidden" name="emoji" value={banner.emoji} />
                 <input type="hidden" name="sortOrder" value={banner.sortOrder} />
                 <input type="hidden" name="active" value={(!banner.active).toString()} />
+                <input type="hidden" name="linkType" value={banner.linkType ?? ""} />
+                <input type="hidden" name="linkValue" value={banner.linkValue ?? ""} />
+                <input type="hidden" name="scheduleStart" value={banner.scheduleStart ?? ""} />
+                <input type="hidden" name="scheduleEnd" value={banner.scheduleEnd ?? ""} />
                 <button
                   type="submit"
                   className={`rounded-full px-3 py-1.5 text-xs font-medium ${

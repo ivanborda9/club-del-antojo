@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
+  deleteOrder,
   getOrderWithItems,
   releaseOrderFromRider,
   restoreStockForOrder,
@@ -47,4 +49,14 @@ export async function releaseOrderAction(formData: FormData): Promise<void> {
   revalidatePath("/admin/pedidos");
   revalidatePath(`/admin/pedidos/${id}`);
   await notifyRidersOfNewOrder();
+}
+
+export async function deleteOrderAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  await deleteOrder(id);
+  revalidatePath("/admin/pedidos");
+  revalidatePath("/admin");
+  redirect("/admin/pedidos");
 }

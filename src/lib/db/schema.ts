@@ -84,6 +84,25 @@ export const banners = sqliteTable("banners", {
   emoji: text("emoji").notNull().default("🎉"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  // A dónde lleva al tocarlo: "product" + el id, "category" + el nombre, o
+  // ninguno de los dos (banner solo informativo, sin link).
+  linkType: text("link_type", { enum: ["product", "category"] }),
+  linkValue: text("link_value"),
+  // Mismo patrón de horario que los productos ("HH:MM", soporta cruzar
+  // medianoche). Si ambos son null, se muestra todo el día.
+  scheduleStart: text("schedule_start"),
+  scheduleEnd: text("schedule_end"),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});
+
+// Horario por categoría completa (ej. "Bebidas con alcohol" solo de noche).
+// Una categoría sin fila acá está disponible todo el día. El nombre debe
+// coincidir exactamente con products.category.
+export const categorySchedules = sqliteTable("category_schedules", {
+  id: text("id").primaryKey(),
+  category: text("category").notNull().unique(),
+  scheduleStart: text("schedule_start").notNull(),
+  scheduleEnd: text("schedule_end").notNull(),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
@@ -99,3 +118,5 @@ export type RiderRow = typeof riders.$inferSelect;
 export type NewRiderRow = typeof riders.$inferInsert;
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscriptionRow = typeof pushSubscriptions.$inferInsert;
+export type CategoryScheduleRow = typeof categorySchedules.$inferSelect;
+export type NewCategoryScheduleRow = typeof categorySchedules.$inferInsert;

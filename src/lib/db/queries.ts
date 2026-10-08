@@ -1,9 +1,10 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "./client";
-import { banners, orderItems, orders, products, pushSubscriptions, riders } from "./schema";
+import { banners, categorySchedules, orderItems, orders, products, pushSubscriptions, riders } from "./schema";
 import type {
   NewBannerRow,
+  NewCategoryScheduleRow,
   NewProductRow,
   NewPushSubscriptionRow,
   NewRiderRow,
@@ -32,26 +33,42 @@ export async function getProductById(id: string): Promise<ProductRow | undefined
 }
 
 // Solo los campos que puede ver un cliente en la tienda: nunca costPrice.
-// Los productos con horario configurado se ocultan fuera de su ventana.
+// Los productos con horario configurado se ocultan fuera de su ventana, y
+// también los de una categoría restringida completa (ej. bebidas con
+// alcohol): mientras esté fuera de horario, no quedan rastros ni del
+// producto ni de la categoría (la pestaña desaparece sola porque se arma
+// a partir de esta misma lista, ya filtrada).
 export async function getStorefrontProducts() {
-  const rows = await db
-    .select({
-      id: products.id,
-      name: products.name,
-      category: products.category,
-      emoji: products.emoji,
-      imageUrl: products.imageUrl,
-      salePrice: products.salePrice,
-      stock: products.stock,
-      scheduleStart: products.scheduleStart,
-      scheduleEnd: products.scheduleEnd,
-    })
-    .from(products)
-    .where(eq(products.active, true))
-    .orderBy(asc(products.category), asc(products.name));
+  const [rows, restrictedCategories] = await Promise.all([
+    db
+      .select({
+        id: products.id,
+        name: products.name,
+        category: products.category,
+        emoji: products.emoji,
+        imageUrl: products.imageUrl,
+        salePrice: products.salePrice,
+        stock: products.stock,
+        scheduleStart: products.scheduleStart,
+        scheduleEnd: products.scheduleEnd,
+      })
+      .from(products)
+      .where(eq(products.active, true))
+      .orderBy(asc(products.category), asc(products.name)),
+    getAllCategorySchedules(),
+  ]);
+
+  const categoryScheduleByName = new Map(
+    restrictedCategories.map((c) => [c.category, c])
+  );
 
   return rows
     .filter((p) => isWithinSchedule(p.scheduleStart, p.scheduleEnd))
+    .filter((p) => {
+      const categorySchedule = categoryScheduleByName.get(p.category);
+      if (!categorySchedule) return true;
+      return isWithinSchedule(categorySchedule.scheduleStart, categorySchedule.scheduleEnd);
+    })
     .map((p) => ({
       id: p.id,
       name: p.name,
@@ -68,6 +85,46 @@ export async function getLowStockProducts(): Promise<ProductRow[]> {
   return rows
     .filter((p) => p.stock <= p.lowStockThreshold)
     .sort((a, b) => a.stock - b.stock);
+}
+
+// ---------- Horario por categoría ----------
+
+export async function getAllCategorySchedules() {
+  return db.select().from(categorySchedules);
+}
+
+export async function getCategorySchedule(category: string) {
+  return (
+    await db
+      .select()
+      .from(categorySchedules)
+      .where(eq(categorySchedules.category, category))
+      .limit(1)
+  )[0];
+}
+
+// Crea o actualiza el horario de una categoría completa (ej. "Bebidas con
+// alcohol" solo disponible de noche).
+export async function setCategorySchedule(
+  category: string,
+  scheduleStart: string,
+  scheduleEnd: string
+): Promise<void> {
+  const existing = await getCategorySchedule(category);
+  if (existing) {
+    await db
+      .update(categorySchedules)
+      .set({ scheduleStart, scheduleEnd })
+      .where(eq(categorySchedules.category, category));
+    return;
+  }
+  const row: NewCategoryScheduleRow = { id: randomUUID(), category, scheduleStart, scheduleEnd };
+  await db.insert(categorySchedules).values(row);
+}
+
+// Vuelve a dejar la categoría disponible todo el día.
+export async function clearCategorySchedule(category: string): Promise<void> {
+  await db.delete(categorySchedules).where(eq(categorySchedules.category, category));
 }
 
 export type ProductInput = {
@@ -144,6 +201,14 @@ export async function restoreStockForOrder(orderId: string): Promise<void> {
       .set({ stock: sql`${products.stock} + ${item.quantity}` })
       .where(eq(products.id, item.productId));
   }
+}
+
+// Borra el pedido definitivamente (para pedidos de prueba u otros que no
+// tengan sentido mantener). No toca el stock — si el pedido todavía estaba
+// reservando stock, cancelalo antes para que se devuelva.
+export async function deleteOrder(orderId: string): Promise<void> {
+  await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
+  await db.delete(orders).where(eq(orders.id, orderId));
 }
 
 // ---------- Repartidores ----------
@@ -321,9 +386,13 @@ export async function getPushSubscriptionsForActiveRiders() {
 
 // ---------- Banners ----------
 
+// Banners para la tienda: activos y, si tienen horario configurado, solo
+// dentro de su ventana (mismo criterio que los productos y categorías).
 export async function getActiveBanners() {
   const rows = await db.select().from(banners).where(eq(banners.active, true));
-  return rows.sort((a, b) => a.sortOrder - b.sortOrder);
+  return rows
+    .filter((b) => isWithinSchedule(b.scheduleStart, b.scheduleEnd))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export async function getAllBanners() {
@@ -337,6 +406,10 @@ export type BannerInput = {
   emoji: string;
   active: boolean;
   sortOrder: number;
+  linkType: "product" | "category" | null;
+  linkValue: string | null;
+  scheduleStart: string | null;
+  scheduleEnd: string | null;
 };
 
 export async function createBanner(input: BannerInput): Promise<string> {
