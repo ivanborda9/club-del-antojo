@@ -10,11 +10,12 @@ type Props = {
   action: (state: ProductFormState, formData: FormData) => Promise<ProductFormState>;
   product?: ProductRow;
   categories: string[];
+  parentCategories: string[];
 };
 
 const initialState: ProductFormState = { error: null };
 
-export function ProductForm({ action, product, categories }: Props) {
+export function ProductForm({ action, product, categories, parentCategories }: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [costPrice, setCostPrice] = useState(product?.costPrice ?? 0);
   const [salePrice, setSalePrice] = useState(product?.salePrice ?? 0);
@@ -99,7 +100,21 @@ export function ProductForm({ action, product, categories }: Props) {
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Categoría">
+        <Field label="Categoría padre (opcional)">
+          <input
+            name="parentCategory"
+            list="categorias-padre"
+            defaultValue={product?.parentCategory ?? ""}
+            className="input"
+            placeholder="Ej: Kiosco"
+          />
+          <datalist id="categorias-padre">
+            {parentCategories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </Field>
+        <Field label="Categoría (subcategoría)">
           <input
             name="category"
             required
@@ -113,9 +128,13 @@ export function ProductForm({ action, product, categories }: Props) {
             ))}
           </datalist>
         </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <Field label="Emoji (si no hay foto)">
           <input name="emoji" defaultValue={product?.emoji ?? "🛒"} className="input" />
         </Field>
+        <div />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

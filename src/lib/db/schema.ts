@@ -5,6 +5,10 @@ export const products = sqliteTable("products", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   category: text("category").notNull(),
+  // Agrupador opcional por encima de la categoría (ej. categoría "Kiosco"
+  // con subcategorías "Chocolates", "Alfajores", etc). Sin asignar, el
+  // producto queda en el grupo "Sin categoría" en el admin.
+  parentCategory: text("parent_category"),
   emoji: text("emoji").notNull().default("🛒"),
   imageUrl: text("image_url"),
   costPrice: real("cost_price").notNull().default(0),

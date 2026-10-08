@@ -130,6 +130,7 @@ export async function clearCategorySchedule(category: string): Promise<void> {
 export type ProductInput = {
   name: string;
   category: string;
+  parentCategory: string | null;
   emoji: string;
   imageUrl: string | null;
   costPrice: number;

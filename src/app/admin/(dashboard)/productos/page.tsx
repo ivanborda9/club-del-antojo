@@ -6,16 +6,19 @@ import { formatPrice } from "@/config/site";
 import { isWithinSchedule } from "@/lib/schedule";
 import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 import { CategoryScheduleControl } from "@/components/admin/CategoryScheduleControl";
-import type { ProductRow } from "@/lib/db/schema";
+
+const NO_PARENT = "__sin_categoria__";
 
 // Agrupa manteniendo el orden en que vienen (getAllProducts ya ordena por
-// categoría, nombre), para que las categorías salgan ordenadas solas.
-function groupByCategory(products: ProductRow[]): [string, ProductRow[]][] {
-  const groups = new Map<string, ProductRow[]>();
-  for (const p of products) {
-    const list = groups.get(p.category) ?? [];
-    list.push(p);
-    groups.set(p.category, list);
+// categoría, nombre), para que los grupos salgan ordenados solos. Productos
+// sin categoría padre quedan juntos bajo NO_PARENT.
+function groupBy<T>(items: T[], keyOf: (item: T) => string): [string, T[]][] {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = keyOf(item);
+    const list = groups.get(key) ?? [];
+    list.push(item);
+    groups.set(key, list);
   }
   return Array.from(groups.entries());
 }
@@ -28,18 +31,36 @@ export default async function AdminProductsPage(
     getAllCategorySchedules(),
     props.searchParams,
   ]);
-  const grouped = groupByCategory(productList);
   const scheduleByCategory = new Map(categorySchedules.map((c) => [c.category, c]));
+
+  const byParent = groupBy(productList, (p) => p.parentCategory || NO_PARENT);
+
+  const requestedParent =
+    typeof searchParams.parent === "string" ? searchParams.parent : undefined;
+  const activeParent =
+    requestedParent && byParent.some(([p]) => p === requestedParent)
+      ? requestedParent
+      : (byParent[0]?.[0] ?? null);
+
+  const productsInParent = byParent.find(([p]) => p === activeParent)?.[1] ?? [];
+  const bySubcategory = groupBy(productsInParent, (p) => p.category);
 
   const requestedCategory =
     typeof searchParams.category === "string" ? searchParams.category : undefined;
   const activeCategory =
-    requestedCategory && grouped.some(([c]) => c === requestedCategory)
+    requestedCategory && bySubcategory.some(([c]) => c === requestedCategory)
       ? requestedCategory
-      : (grouped[0]?.[0] ?? null);
+      : (bySubcategory[0]?.[0] ?? null);
 
-  const activeProducts = grouped.find(([c]) => c === activeCategory)?.[1] ?? [];
+  const activeProducts = bySubcategory.find(([c]) => c === activeCategory)?.[1] ?? [];
   const activeSchedule = activeCategory ? scheduleByCategory.get(activeCategory) : undefined;
+
+  function parentHref(parent: string): string {
+    return `/admin/productos?parent=${encodeURIComponent(parent)}`;
+  }
+  function categoryHref(category: string): string {
+    return `/admin/productos?parent=${encodeURIComponent(activeParent ?? NO_PARENT)}&category=${encodeURIComponent(category)}`;
+  }
 
   return (
     <div>
@@ -53,27 +74,28 @@ export default async function AdminProductsPage(
         </Link>
       </div>
 
-      {grouped.length === 0 ? (
+      {byParent.length === 0 ? (
         <p className="mt-6 text-sm text-zinc-500">Todavía no cargaste ningún producto.</p>
       ) : (
         <>
+          {/* Categorías (padre) */}
           <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
-            {grouped.map(([category, products]) => (
+            {byParent.map(([parent, products]) => (
               <Link
-                key={category}
-                href={`/admin/productos?category=${encodeURIComponent(category)}`}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  category === activeCategory
+                key={parent}
+                href={parentHref(parent)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition ${
+                  parent === activeParent
                     ? "bg-orange-600 text-white"
-                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    : "bg-orange-50 text-orange-700 hover:bg-orange-100"
                 }`}
               >
-                🏷️ {category}
+                📁 {parent === NO_PARENT ? "Sin categoría" : parent}
                 <span
                   className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
-                    category === activeCategory
+                    parent === activeParent
                       ? "bg-white/25 text-white"
-                      : "bg-zinc-200 text-zinc-600"
+                      : "bg-orange-200 text-orange-800"
                   }`}
                 >
                   {products.length}
@@ -81,6 +103,34 @@ export default async function AdminProductsPage(
               </Link>
             ))}
           </div>
+
+          {/* Subcategorías dentro de la categoría elegida */}
+          {bySubcategory.length > 0 && (
+            <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto">
+              {bySubcategory.map(([category, products]) => (
+                <Link
+                  key={category}
+                  href={categoryHref(category)}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+                    category === activeCategory
+                      ? "bg-zinc-800 text-white"
+                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                  }`}
+                >
+                  🏷️ {category}
+                  <span
+                    className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
+                      category === activeCategory
+                        ? "bg-white/25 text-white"
+                        : "bg-zinc-200 text-zinc-600"
+                    }`}
+                  >
+                    {products.length}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
 
           {activeCategory && (
             <section className="mt-4">
