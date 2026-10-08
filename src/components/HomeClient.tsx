@@ -8,15 +8,17 @@ import { CartBar } from "@/components/CartBar";
 import { CartSheet } from "@/components/CartSheet";
 import { CategoryTabs } from "@/components/CategoryTabs";
 import { Header } from "@/components/Header";
+import { MarqueeTicker } from "@/components/MarqueeTicker";
 import { ProductGrid } from "@/components/ProductGrid";
 import { siteConfig } from "@/config/site";
-import type { BannerRow } from "@/lib/db/schema";
+import type { BannerRow, MarqueeMessageRow } from "@/lib/db/schema";
 import type { Product } from "@/types";
 
 type Props = {
   products: Product[];
   categories: string[];
   banners: BannerRow[];
+  marqueeMessages: MarqueeMessageRow[];
   initialCategory: string | null;
   initialProductId: string | null;
 };
@@ -25,6 +27,7 @@ export function HomeClient({
   products,
   categories,
   banners,
+  marqueeMessages,
   initialCategory,
   initialProductId,
 }: Props) {
@@ -92,6 +95,7 @@ export function HomeClient({
   return (
     <div className="flex flex-1 flex-col pb-28">
       <div className="sticky top-0 z-30">
+        <MarqueeTicker messages={marqueeMessages} />
         <Header onCartClick={() => setCartOpen(true)} />
         <CategoryTabs
           categories={categories}

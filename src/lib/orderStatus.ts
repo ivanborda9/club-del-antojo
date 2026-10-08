@@ -27,4 +27,5 @@ export const ORDER_STATUS_STYLES: Record<OrderStatus, string> = {
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   mercadopago: "Mercado Pago",
   transferencia: "Transferencia",
+  efectivo: "Efectivo (contra entrega)",
 };

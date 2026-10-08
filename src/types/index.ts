@@ -15,4 +15,4 @@ export type CartItem = {
   quantity: number;
 };
 
-export type PaymentMethod = "mercadopago" | "transferencia";
+export type PaymentMethod = "mercadopago" | "transferencia" | "efectivo";

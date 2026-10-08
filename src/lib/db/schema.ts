@@ -32,7 +32,7 @@ export const orders = sqliteTable("orders", {
   address: text("address").notNull(),
   notes: text("notes"),
   paymentMethod: text("payment_method", {
-    enum: ["mercadopago", "transferencia"],
+    enum: ["mercadopago", "transferencia", "efectivo"],
   }).notNull(),
   status: text("status", {
     enum: ["pendiente_pago", "pagado", "en_camino", "entregado", "cancelado"],
@@ -110,6 +110,20 @@ export const categorySchedules = sqliteTable("category_schedules", {
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
+// Carrusel de texto que se desliza arriba de todo en la tienda (ej. "3
+// cuotas sin interés"). Varios mensajes activos se concatenan en el mismo
+// desplazamiento continuo.
+export const marqueeMessages = sqliteTable("marquee_messages", {
+  id: text("id").primaryKey(),
+  text: text("text").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  // Mismo patrón "HH:MM" que banners/productos; ambos null = todo el día.
+  scheduleStart: text("schedule_start"),
+  scheduleEnd: text("schedule_end"),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});
+
 export type ProductRow = typeof products.$inferSelect;
 export type NewProductRow = typeof products.$inferInsert;
 export type OrderRow = typeof orders.$inferSelect;
@@ -122,5 +136,7 @@ export type RiderRow = typeof riders.$inferSelect;
 export type NewRiderRow = typeof riders.$inferInsert;
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscriptionRow = typeof pushSubscriptions.$inferInsert;
+export type MarqueeMessageRow = typeof marqueeMessages.$inferSelect;
+export type NewMarqueeMessageRow = typeof marqueeMessages.$inferInsert;
 export type CategoryScheduleRow = typeof categorySchedules.$inferSelect;
 export type NewCategoryScheduleRow = typeof categorySchedules.$inferInsert;

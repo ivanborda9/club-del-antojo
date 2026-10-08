@@ -16,6 +16,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transferSent, setTransferSent] = useState(false);
+  const [cashConfirmed, setCashConfirmed] = useState(false);
 
   const isFormValid = name.trim() && phone.trim() && address.trim();
 
@@ -52,10 +53,12 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Transferencia: creamos el pedido en el servidor (valida stock y precios
-    // reales) y armamos el mensaje de WhatsApp con esos datos ya confirmados.
+    // Transferencia y efectivo: creamos el pedido en el servidor (valida
+    // stock y precios reales) y armamos el mensaje de WhatsApp con esos
+    // datos ya confirmados.
     try {
-      const res = await fetch("/api/checkout/transferencia", {
+      const endpoint = method === "efectivo" ? "/api/checkout/efectivo" : "/api/checkout/transferencia";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -82,13 +85,14 @@ export default function CheckoutPage() {
         `Dirección de envío: ${address}`,
         notes ? `Notas: ${notes}` : null,
         "",
-        "Pago por transferencia. Adjunto el comprobante.",
+        method === "efectivo" ? "Pago en efectivo contra entrega." : "Pago por transferencia. Adjunto el comprobante.",
       ]
         .filter(Boolean)
         .join("\n");
 
       window.open(buildWhatsappOrderLink(message), "_blank", "noopener,noreferrer");
-      setTransferSent(true);
+      if (method === "efectivo") setCashConfirmed(true);
+      else setTransferSent(true);
       clear();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo crear el pedido.");
@@ -97,7 +101,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (items.length === 0 && !transferSent) {
+  if (items.length === 0 && !transferSent && !cashConfirmed) {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-6 text-center">
         <p className="text-sm text-zinc-500">Tu carrito está vacío.</p>
@@ -106,6 +110,25 @@ export default function CheckoutPage() {
           className="mt-4 flex h-11 items-center justify-center rounded-full bg-orange-600 px-6 text-sm font-bold text-white"
         >
           Ver productos
+        </Link>
+      </div>
+    );
+  }
+
+  if (cashConfirmed) {
+    return (
+      <div className="safe-bottom mx-auto max-w-md px-4 py-10">
+        <h1 className="text-lg font-bold text-zinc-800">¡Listo! Pedido confirmado</h1>
+        <p className="mt-2 text-sm text-zinc-500">
+          Te abrimos WhatsApp con el detalle del pedido. Pagás en efectivo cuando te lo
+          entregue el repartidor.
+        </p>
+
+        <Link
+          href="/"
+          className="mt-6 flex h-11 items-center justify-center rounded-full bg-orange-600 px-6 text-sm font-bold text-white"
+        >
+          Volver al inicio
         </Link>
       </div>
     );
@@ -228,6 +251,13 @@ export default function CheckoutPage() {
               selected={method === "transferencia"}
               onSelect={() => setMethod("transferencia")}
             />
+            <PaymentOption
+              id="efectivo"
+              label="Efectivo"
+              description="Pagás en el momento, cuando te entreguen el pedido"
+              selected={method === "efectivo"}
+              onSelect={() => setMethod("efectivo")}
+            />
           </div>
         </div>
 
@@ -242,7 +272,9 @@ export default function CheckoutPage() {
             ? "Procesando…"
             : method === "mercadopago"
               ? `Pagar ${formatPrice(totalPrice)} con Mercado Pago`
-              : "Confirmar pedido y ver datos de transferencia"}
+              : method === "efectivo"
+                ? "Confirmar pedido (pago en efectivo)"
+                : "Confirmar pedido y ver datos de transferencia"}
         </button>
       </form>
     </div>

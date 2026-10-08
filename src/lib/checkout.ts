@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { orderItems, orders, products } from "@/lib/db/schema";
 import { isWithinSchedule } from "@/lib/schedule";
+import { notifyRidersOfNewOrder } from "@/lib/push";
 
 export type CheckoutItemInput = { productId: string; quantity: number };
 export type Buyer = { name: string; phone: string; address: string; notes?: string };
@@ -20,7 +21,7 @@ export type CreatedOrder = {
 export async function createOrderFromCart(
   itemsInput: CheckoutItemInput[],
   buyer: Buyer,
-  paymentMethod: "mercadopago" | "transferencia"
+  paymentMethod: "mercadopago" | "transferencia" | "efectivo"
 ): Promise<CreatedOrder> {
   if (!itemsInput.length) throw new CheckoutError("El carrito está vacío.");
 
@@ -61,6 +62,11 @@ export async function createOrderFromCart(
   const total = resolved.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
   const orderId = randomUUID();
 
+  // Efectivo se cobra al entregar: no hay nada que esperar para despacharlo,
+  // entra directo como "pagado" al pool de repartidores. Transferencia sí
+  // espera a que el admin confirme el comprobante.
+  const status = paymentMethod === "efectivo" ? "pagado" : "pendiente_pago";
+
   await db.insert(orders).values({
     id: orderId,
     customerName: buyer.name,
@@ -68,7 +74,7 @@ export async function createOrderFromCart(
     address: buyer.address,
     notes: buyer.notes || null,
     paymentMethod,
-    status: "pendiente_pago",
+    status,
     total,
   });
 
@@ -90,6 +96,10 @@ export async function createOrderFromCart(
       .update(products)
       .set({ stock: sql`${products.stock} - ${it.quantity}` })
       .where(eq(products.id, it.productId));
+  }
+
+  if (status === "pagado") {
+    await notifyRidersOfNewOrder();
   }
 
   return {
