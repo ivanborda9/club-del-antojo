@@ -23,6 +23,20 @@ import type {
 } from "./schema";
 import { isWithinSchedule } from "@/lib/schedule";
 
+// Para funciones "decorativas" (no esenciales para vender) cuya tabla
+// puede no existir todavía en producción si falta una migración: que un
+// error ahí no tumbe páginas críticas como la portada. Ya pasó más de una
+// vez con una tabla nueva sin aplicar — mejor degradar en silencio que
+// romper toda la tienda por un carrusel de texto.
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error("[safeQuery] falló una consulta no esencial, uso el valor por defecto:", err);
+    return fallback;
+  }
+}
+
 // orders.createdAt se guarda con el formato de SQLite CURRENT_TIMESTAMP
 // ("YYYY-MM-DD HH:MM:SS", en UTC) — los filtros por fecha deben usar el
 // mismo formato, nunca Date#toISOString() (que agrega "T"/"Z"/milisegundos
@@ -65,7 +79,7 @@ export async function getStorefrontProducts() {
       .from(products)
       .where(eq(products.active, true))
       .orderBy(asc(products.category), asc(products.name)),
-    getAllCategorySchedules(),
+    safeQuery(() => getAllCategorySchedules(), []),
   ]);
 
   const categoryScheduleByName = new Map(
@@ -441,10 +455,12 @@ export async function deleteBanner(id: string): Promise<void> {
 // ---------- Carrusel de texto ----------
 
 export async function getActiveMarqueeMessages() {
-  const rows = await db.select().from(marqueeMessages).where(eq(marqueeMessages.active, true));
-  return rows
-    .filter((m) => isWithinSchedule(m.scheduleStart, m.scheduleEnd))
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  return safeQuery(async () => {
+    const rows = await db.select().from(marqueeMessages).where(eq(marqueeMessages.active, true));
+    return rows
+      .filter((m) => isWithinSchedule(m.scheduleStart, m.scheduleEnd))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, []);
 }
 
 export async function getAllMarqueeMessages() {
