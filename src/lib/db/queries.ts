@@ -4,7 +4,6 @@ import { db } from "./client";
 import {
   banners,
   categorySchedules,
-  marqueeMessages,
   orderItems,
   orders,
   products,
@@ -14,7 +13,6 @@ import {
 import type {
   NewBannerRow,
   NewCategoryScheduleRow,
-  NewMarqueeMessageRow,
   NewProductRow,
   NewPushSubscriptionRow,
   NewRiderRow,
@@ -450,45 +448,6 @@ export async function updateBanner(id: string, input: BannerInput): Promise<void
 
 export async function deleteBanner(id: string): Promise<void> {
   await db.delete(banners).where(eq(banners.id, id));
-}
-
-// ---------- Carrusel de texto ----------
-
-export async function getActiveMarqueeMessages() {
-  return safeQuery(async () => {
-    const rows = await db.select().from(marqueeMessages).where(eq(marqueeMessages.active, true));
-    return rows
-      .filter((m) => isWithinSchedule(m.scheduleStart, m.scheduleEnd))
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, []);
-}
-
-export async function getAllMarqueeMessages() {
-  const rows = await db.select().from(marqueeMessages);
-  return rows.sort((a, b) => a.sortOrder - b.sortOrder);
-}
-
-export type MarqueeMessageInput = {
-  text: string;
-  active: boolean;
-  sortOrder: number;
-  scheduleStart: string | null;
-  scheduleEnd: string | null;
-};
-
-export async function createMarqueeMessage(input: MarqueeMessageInput): Promise<string> {
-  const id = randomUUID();
-  const row: NewMarqueeMessageRow = { id, ...input };
-  await db.insert(marqueeMessages).values(row);
-  return id;
-}
-
-export async function updateMarqueeMessage(id: string, input: MarqueeMessageInput): Promise<void> {
-  await db.update(marqueeMessages).set(input).where(eq(marqueeMessages.id, id));
-}
-
-export async function deleteMarqueeMessage(id: string): Promise<void> {
-  await db.delete(marqueeMessages).where(eq(marqueeMessages.id, id));
 }
 
 // ---------- Reportes ----------
