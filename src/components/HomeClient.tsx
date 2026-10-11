@@ -17,6 +17,7 @@ type Props = {
   products: Product[];
   categories: string[];
   banners: BannerRow[];
+  bannerIntervalSeconds: number;
   initialCategory: string | null;
   initialProductId: string | null;
 };
@@ -25,6 +26,7 @@ export function HomeClient({
   products,
   categories,
   banners,
+  bannerIntervalSeconds,
   initialCategory,
   initialProductId,
 }: Props) {
@@ -100,7 +102,7 @@ export function HomeClient({
         />
       </div>
 
-      <Banners banners={banners} />
+      <Banners banners={banners} intervalSeconds={bannerIntervalSeconds} />
 
       <p className="px-4 pt-3 text-xs text-zinc-500">
         🚚 {siteConfig.deliveryNote}

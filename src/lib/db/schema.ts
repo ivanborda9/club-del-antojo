@@ -86,6 +86,9 @@ export const banners = sqliteTable("banners", {
   title: text("title").notNull(),
   subtitle: text("subtitle"),
   emoji: text("emoji").notNull().default("🎉"),
+  // Imagen de fondo del slide. Si no tiene, se usa la tarjeta con gradiente
+  // (emoji + título + subtítulo) como antes.
+  imageUrl: text("image_url"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   // A dónde lleva al tocarlo: "product" + el id, "category" + el nombre, o
@@ -110,6 +113,13 @@ export const categorySchedules = sqliteTable("category_schedules", {
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
+// Configuración general tipo clave-valor (ej. intervalo del carrusel de
+// banners en segundos). Si falta una clave, el código usa un default.
+export const siteSettings = sqliteTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
 export type ProductRow = typeof products.$inferSelect;
 export type NewProductRow = typeof products.$inferInsert;
 export type OrderRow = typeof orders.$inferSelect;
@@ -124,3 +134,5 @@ export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscriptionRow = typeof pushSubscriptions.$inferInsert;
 export type CategoryScheduleRow = typeof categorySchedules.$inferSelect;
 export type NewCategoryScheduleRow = typeof categorySchedules.$inferInsert;
+export type SiteSettingRow = typeof siteSettings.$inferSelect;
+export type NewSiteSettingRow = typeof siteSettings.$inferInsert;

@@ -57,6 +57,13 @@
       "when": 1791492586374,
       "tag": "0007_motionless_ken_ellis",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791682642041,
+      "tag": "0008_dazzling_chameleon",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,7 @@ import {
   products,
   pushSubscriptions,
   riders,
+  siteSettings,
 } from "./schema";
 import type {
   NewBannerRow,
@@ -411,11 +412,15 @@ export async function getPushSubscriptionsForActiveRiders() {
 
 // Banners para la tienda: activos y, si tienen horario configurado, solo
 // dentro de su ventana (mismo criterio que los productos y categorías).
+// Envuelto en safeQuery: si todavía falta aplicar la migración de
+// "image_url" en producción, la portada no se tiene que romper por esto.
 export async function getActiveBanners() {
-  const rows = await db.select().from(banners).where(eq(banners.active, true));
-  return rows
-    .filter((b) => isWithinSchedule(b.scheduleStart, b.scheduleEnd))
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  return safeQuery(async () => {
+    const rows = await db.select().from(banners).where(eq(banners.active, true));
+    return rows
+      .filter((b) => isWithinSchedule(b.scheduleStart, b.scheduleEnd))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, []);
 }
 
 export async function getAllBanners() {
@@ -427,6 +432,7 @@ export type BannerInput = {
   title: string;
   subtitle: string | null;
   emoji: string;
+  imageUrl: string | null;
   active: boolean;
   sortOrder: number;
   linkType: "product" | "category" | null;
@@ -448,6 +454,36 @@ export async function updateBanner(id: string, input: BannerInput): Promise<void
 
 export async function deleteBanner(id: string): Promise<void> {
   await db.delete(banners).where(eq(banners.id, id));
+}
+
+// ---------- Configuración general ----------
+
+const BANNER_INTERVAL_SETTING_KEY = "banner_interval_seconds";
+const DEFAULT_BANNER_INTERVAL_SECONDS = 5;
+
+// Cada cuántos segundos rota el carrusel de banners. Envuelto en safeQuery
+// para que, si falta aplicar la migración de "site_settings", la portada
+// use el default en vez de romperse.
+export async function getBannerIntervalSeconds(): Promise<number> {
+  return safeQuery(async () => {
+    const row = (
+      await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.key, BANNER_INTERVAL_SETTING_KEY))
+        .limit(1)
+    )[0];
+    const parsed = row ? Number(row.value) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_BANNER_INTERVAL_SECONDS;
+  }, DEFAULT_BANNER_INTERVAL_SECONDS);
+}
+
+export async function setBannerIntervalSeconds(seconds: number): Promise<void> {
+  const value = String(Math.max(1, Math.round(seconds)));
+  await db
+    .insert(siteSettings)
+    .values({ key: BANNER_INTERVAL_SETTING_KEY, value })
+    .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
 }
 
 // ---------- Reportes ----------

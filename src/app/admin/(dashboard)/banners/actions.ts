@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createBanner, deleteBanner, updateBanner } from "@/lib/db/queries";
+import { createBanner, deleteBanner, setBannerIntervalSeconds, updateBanner } from "@/lib/db/queries";
 import type { BannerInput } from "@/lib/db/queries";
 
 function parseLink(formData: FormData): Pick<BannerInput, "linkType" | "linkValue"> {
@@ -42,6 +42,7 @@ export async function createBannerAction(formData: FormData): Promise<void> {
     title,
     subtitle: String(formData.get("subtitle") ?? "").trim() || null,
     emoji: String(formData.get("emoji") ?? "🎉").trim() || "🎉",
+    imageUrl: String(formData.get("imageUrl") ?? "").trim() || null,
     active: true,
     sortOrder: Number(formData.get("sortOrder")) || 0,
     ...parseLink(formData),
@@ -57,6 +58,7 @@ export async function toggleBannerAction(formData: FormData): Promise<void> {
   const title = String(formData.get("title") ?? "");
   const subtitle = formData.get("subtitle");
   const emoji = String(formData.get("emoji") ?? "🎉");
+  const imageUrl = formData.get("imageUrl");
   const sortOrder = Number(formData.get("sortOrder")) || 0;
   const active = formData.get("active") === "true";
   const linkType = formData.get("linkType");
@@ -69,6 +71,7 @@ export async function toggleBannerAction(formData: FormData): Promise<void> {
     title,
     subtitle: subtitle ? String(subtitle) : null,
     emoji,
+    imageUrl: imageUrl ? String(imageUrl) : null,
     active,
     sortOrder,
     linkType: linkType === "product" || linkType === "category" ? linkType : null,
@@ -85,6 +88,14 @@ export async function deleteBannerAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteBanner(id);
+  revalidatePath("/admin/banners");
+  revalidatePath("/");
+}
+
+export async function setBannerIntervalAction(formData: FormData): Promise<void> {
+  const seconds = Number(formData.get("intervalSeconds"));
+  if (!Number.isFinite(seconds) || seconds <= 0) return;
+  await setBannerIntervalSeconds(seconds);
   revalidatePath("/admin/banners");
   revalidatePath("/");
 }
