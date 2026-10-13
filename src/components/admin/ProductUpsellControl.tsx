@@ -6,6 +6,7 @@ import {
   setProductUpsellAction,
 } from "@/app/admin/(dashboard)/productos/actions";
 import { formatPrice } from "@/config/site";
+import { marginPercent } from "@/lib/margin";
 import type { ProductRow } from "@/lib/db/schema";
 
 type Upsell = {
@@ -40,6 +41,17 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
     ? (selectedProduct.salePrice + selectedProduct.costPrice) / 2
     : 0;
   const belowSuggested = Boolean(selectedProduct) && offerPriceText !== "" && offerPrice < suggestedMinPrice;
+
+  // % de ganancia del producto ofrecido, al precio normal vs. al precio
+  // especial que se está escribiendo — mismo cálculo que en el alta de
+  // productos (marginPercent), para comparar de un vistazo.
+  const normalMargin = selectedProduct
+    ? marginPercent(selectedProduct.costPrice, selectedProduct.salePrice)
+    : 0;
+  const offerMargin =
+    selectedProduct && offerPriceText !== ""
+      ? marginPercent(selectedProduct.costPrice, offerPrice)
+      : null;
 
   return (
     <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-3">
@@ -88,7 +100,8 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
         </label>
         {selectedProduct && (
           <p className="text-[11px] text-zinc-500">
-            Ganancia normal: {formatPrice(selectedProduct.salePrice - selectedProduct.costPrice)}
+            Ganancia normal: {formatPrice(selectedProduct.salePrice - selectedProduct.costPrice)}{" "}
+            ({normalMargin.toFixed(1)}%)
             {" · "}Precio sugerido (mantiene al menos la mitad):{" "}
             <strong>{formatPrice(suggestedMinPrice)}</strong>
           </p>
@@ -106,6 +119,20 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
             placeholder="Ej: 500"
           />
         </label>
+        {selectedProduct && offerMargin !== null && (
+          <p
+            className={`text-[11px] font-medium ${
+              offerMargin < 0
+                ? "text-red-600"
+                : belowSuggested
+                  ? "text-amber-600"
+                  : "text-emerald-600"
+            }`}
+          >
+            Ganancia con ese precio: {formatPrice(offerPrice - selectedProduct.costPrice)} (
+            {offerMargin.toFixed(1)}%)
+          </p>
+        )}
         {belowSuggested && (
           <p className="text-[11px] text-amber-600">
             Con este precio ganás menos de la mitad de lo normal en esa unidad. Sugerido:{" "}
