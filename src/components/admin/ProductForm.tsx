@@ -11,6 +11,7 @@ type Props = {
   action: (state: ProductFormState, formData: FormData) => Promise<ProductFormState>;
   product?: ProductRow;
   categories: string[];
+  parentCategories: string[];
   allProducts?: ProductRow[];
   upsell?: { offerProductId: string; offerPrice: number; offerProductName: string } | null;
 };
@@ -21,6 +22,7 @@ export function ProductForm({
   action,
   product,
   categories,
+  parentCategories,
   allProducts,
   upsell,
 }: Props) {
@@ -118,20 +120,36 @@ export function ProductForm({
         />
       </Field>
 
-      <Field label="Categoría">
-        <input
-          name="category"
-          required
-          list="categorias"
-          defaultValue={product?.category}
-          className="input"
-        />
-        <datalist id="categorias">
-          {categories.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Categoría padre (opcional)">
+          <input
+            name="parentCategory"
+            list="categorias-padre"
+            defaultValue={product?.parentCategory ?? ""}
+            className="input"
+            placeholder="Ej: Kiosco"
+          />
+          <datalist id="categorias-padre">
+            {parentCategories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </Field>
+        <Field label="Categoría (subcategoría)">
+          <input
+            name="category"
+            required
+            list="categorias"
+            defaultValue={product?.category}
+            className="input"
+          />
+          <datalist id="categorias">
+            {categories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </Field>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Emoji (si no hay foto)">

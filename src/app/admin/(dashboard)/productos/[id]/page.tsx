@@ -16,6 +16,9 @@ export default async function EditProductPage(
   if (!product) notFound();
 
   const categories = Array.from(new Set(productList.map((p) => p.category)));
+  const parentCategories = Array.from(
+    new Set(productList.map((p) => p.parentCategory).filter((c): c is string => Boolean(c)))
+  );
   const action = updateProductAction.bind(null, id);
 
   return (
@@ -26,6 +29,7 @@ export default async function EditProductPage(
           action={action}
           product={product}
           categories={categories}
+          parentCategories={parentCategories}
           allProducts={productList}
           upsell={upsell ?? null}
         />

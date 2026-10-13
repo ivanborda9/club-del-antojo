@@ -18,6 +18,7 @@ export type ProductFormState = { error: string | null };
 function parseProductForm(formData: FormData): ProductInput | { error: string } {
   const name = String(formData.get("name") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
+  const parentCategory = String(formData.get("parentCategory") ?? "").trim() || null;
   const emoji = String(formData.get("emoji") ?? "🛒").trim() || "🛒";
   const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
@@ -50,6 +51,7 @@ function parseProductForm(formData: FormData): ProductInput | { error: string } 
   return {
     name,
     category,
+    parentCategory,
     emoji,
     imageUrl,
     description,
