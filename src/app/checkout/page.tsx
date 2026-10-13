@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
@@ -253,7 +254,19 @@ export default function CheckoutPage() {
           key={offer.triggerProductId}
           className="mt-3 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3"
         >
-          <span className="text-2xl">{offer.offerProduct.emoji}</span>
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-2xl">
+            {offer.offerProduct.imageUrl ? (
+              <Image
+                src={offer.offerProduct.imageUrl}
+                alt=""
+                width={48}
+                height={48}
+                className="h-full w-full object-contain p-1"
+              />
+            ) : (
+              offer.offerProduct.emoji
+            )}
+          </div>
           <p className="flex-1 text-sm text-emerald-800">
             Agregá <strong>{offer.offerProduct.name}</strong> por solo{" "}
             <strong>{formatPrice(offer.offerPrice)}</strong>
