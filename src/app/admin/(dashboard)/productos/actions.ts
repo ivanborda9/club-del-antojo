@@ -7,7 +7,6 @@ import {
   clearProductUpsell,
   createProduct,
   deleteProduct,
-  getProductById,
   setCategorySchedule,
   setProductUpsell,
   updateProduct,
@@ -127,13 +126,6 @@ export async function setProductUpsellAction(formData: FormData): Promise<void> 
   const offerPrice = Number(formData.get("offerPrice"));
   if (!triggerProductId || !offerProductId) return;
   if (!Number.isFinite(offerPrice) || offerPrice < 0) return;
-
-  // Nunca dejar una oferta que deje menos de la mitad de la ganancia normal
-  // de ese producto, aunque alguien bypasee la validación del formulario.
-  const offerProduct = await getProductById(offerProductId);
-  if (!offerProduct) return;
-  const minOfferPrice = (offerProduct.salePrice + offerProduct.costPrice) / 2;
-  if (offerPrice < minOfferPrice) return;
 
   await setProductUpsell(triggerProductId, offerProductId, offerPrice);
   revalidatePath("/admin/productos");

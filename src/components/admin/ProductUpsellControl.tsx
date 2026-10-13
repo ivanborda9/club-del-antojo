@@ -24,16 +24,22 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
   const [offerProductId, setOfferProductId] = useState(
     upsell?.offerProductId ?? ""
   );
-  const [offerPrice, setOfferPrice] = useState(upsell?.offerPrice ?? 0);
+  // String, no number: si fuera number, al borrar el único dígito el campo
+  // cae a 0 y React lo vuelve a mostrar en el input — no se puede dejar
+  // vacío para escribir un valor nuevo.
+  const [offerPriceText, setOfferPriceText] = useState(
+    upsell ? String(upsell.offerPrice) : ""
+  );
+  const offerPrice = Number(offerPriceText) || 0;
 
   const selectedProduct = allProducts.find((p) => p.id === offerProductId);
-  // Nunca se puede ofrecer a un precio que deje menos de la mitad de la
-  // ganancia normal de ese producto (protege el margen aunque sea una
-  // oferta agresiva).
-  const minOfferPrice = selectedProduct
+  // Precio sugerido: mantiene al menos la mitad de la ganancia normal. Es
+  // solo una guía al precargar el campo — el precio final queda a criterio
+  // de cada uno, se puede bajar más si se quiere.
+  const suggestedMinPrice = selectedProduct
     ? (selectedProduct.salePrice + selectedProduct.costPrice) / 2
     : 0;
-  const belowMin = Boolean(selectedProduct) && offerPrice < minOfferPrice;
+  const belowSuggested = Boolean(selectedProduct) && offerPriceText !== "" && offerPrice < suggestedMinPrice;
 
   return (
     <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-3">
@@ -67,7 +73,7 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
               const id = e.target.value;
               setOfferProductId(id);
               const p = allProducts.find((prod) => prod.id === id);
-              if (p) setOfferPrice(Math.ceil((p.salePrice + p.costPrice) / 2));
+              if (p) setOfferPriceText(String(Math.ceil((p.salePrice + p.costPrice) / 2)));
             }}
             className="input text-sm"
           >
@@ -83,8 +89,8 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
         {selectedProduct && (
           <p className="text-[11px] text-zinc-500">
             Ganancia normal: {formatPrice(selectedProduct.salePrice - selectedProduct.costPrice)}
-            {" · "}Precio mínimo permitido (mantiene al menos la mitad):{" "}
-            <strong>{formatPrice(minOfferPrice)}</strong>
+            {" · "}Precio sugerido (mantiene al menos la mitad):{" "}
+            <strong>{formatPrice(suggestedMinPrice)}</strong>
           </p>
         )}
         <label className="block max-w-40">
@@ -93,22 +99,22 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
             name="offerPrice"
             type="number"
             step="0.01"
-            min={minOfferPrice}
-            value={offerPrice}
-            onChange={(e) => setOfferPrice(Number(e.target.value))}
+            min="0"
+            value={offerPriceText}
+            onChange={(e) => setOfferPriceText(e.target.value)}
             className="input text-sm"
             placeholder="Ej: 500"
           />
         </label>
-        {belowMin && (
-          <p className="text-[11px] text-red-600">
-            Ese precio deja menos de la mitad de la ganancia normal. Mínimo:{" "}
-            {formatPrice(minOfferPrice)}
+        {belowSuggested && (
+          <p className="text-[11px] text-amber-600">
+            Con este precio ganás menos de la mitad de lo normal en esa unidad. Sugerido:{" "}
+            {formatPrice(suggestedMinPrice)}
           </p>
         )}
         <button
           type="submit"
-          disabled={!offerProductId || belowMin}
+          disabled={!offerProductId}
           className="h-9 w-full rounded-full bg-orange-600 text-xs font-bold text-white disabled:opacity-50"
         >
           Guardar oferta
