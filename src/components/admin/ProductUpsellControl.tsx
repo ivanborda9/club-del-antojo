@@ -24,6 +24,16 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
   const [offerProductId, setOfferProductId] = useState(
     upsell?.offerProductId ?? ""
   );
+  const [offerPrice, setOfferPrice] = useState(upsell?.offerPrice ?? 0);
+
+  const selectedProduct = allProducts.find((p) => p.id === offerProductId);
+  // Nunca se puede ofrecer a un precio que deje menos de la mitad de la
+  // ganancia normal de ese producto (protege el margen aunque sea una
+  // oferta agresiva).
+  const minOfferPrice = selectedProduct
+    ? (selectedProduct.salePrice + selectedProduct.costPrice) / 2
+    : 0;
+  const belowMin = Boolean(selectedProduct) && offerPrice < minOfferPrice;
 
   return (
     <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-3">
@@ -53,7 +63,12 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
           <select
             name="offerProductId"
             value={offerProductId}
-            onChange={(e) => setOfferProductId(e.target.value)}
+            onChange={(e) => {
+              const id = e.target.value;
+              setOfferProductId(id);
+              const p = allProducts.find((prod) => prod.id === id);
+              if (p) setOfferPrice(Math.ceil((p.salePrice + p.costPrice) / 2));
+            }}
             className="input text-sm"
           >
             <option value="">Elegí un producto…</option>
@@ -65,21 +80,35 @@ export function ProductUpsellControl({ triggerProductId, allProducts, upsell }: 
             ))}
           </select>
         </label>
+        {selectedProduct && (
+          <p className="text-[11px] text-zinc-500">
+            Ganancia normal: {formatPrice(selectedProduct.salePrice - selectedProduct.costPrice)}
+            {" · "}Precio mínimo permitido (mantiene al menos la mitad):{" "}
+            <strong>{formatPrice(minOfferPrice)}</strong>
+          </p>
+        )}
         <label className="block max-w-40">
           <span className="mb-1 block text-[11px] text-zinc-500">Precio especial</span>
           <input
             name="offerPrice"
             type="number"
             step="0.01"
-            min="0"
-            defaultValue={upsell?.offerPrice ?? ""}
+            min={minOfferPrice}
+            value={offerPrice}
+            onChange={(e) => setOfferPrice(Number(e.target.value))}
             className="input text-sm"
             placeholder="Ej: 500"
           />
         </label>
+        {belowMin && (
+          <p className="text-[11px] text-red-600">
+            Ese precio deja menos de la mitad de la ganancia normal. Mínimo:{" "}
+            {formatPrice(minOfferPrice)}
+          </p>
+        )}
         <button
           type="submit"
-          disabled={!offerProductId}
+          disabled={!offerProductId || belowMin}
           className="h-9 w-full rounded-full bg-orange-600 text-xs font-bold text-white disabled:opacity-50"
         >
           Guardar oferta
