@@ -7,11 +7,8 @@ import { isWithinSchedule } from "@/lib/schedule";
 import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 import { CategoryScheduleControl } from "@/components/admin/CategoryScheduleControl";
 
-const NO_PARENT = "__sin_categoria__";
-
 // Agrupa manteniendo el orden en que vienen (getAllProducts ya ordena por
-// categoría, nombre), para que los grupos salgan ordenados solos. Productos
-// sin categoría padre quedan juntos bajo NO_PARENT.
+// categoría, nombre), para que los grupos salgan ordenados solos.
 function groupBy<T>(items: T[], keyOf: (item: T) => string): [string, T[]][] {
   const groups = new Map<string, T[]>();
   for (const item of items) {
@@ -33,34 +30,23 @@ export default async function AdminProductsPage(
   ]);
   const scheduleByCategory = new Map(categorySchedules.map((c) => [c.category, c]));
 
-  const byParent = groupBy(productList, (p) => p.parentCategory || NO_PARENT);
+  const byCategory = groupBy(productList, (p) => p.category);
 
-  // No se preselecciona ninguna categoría: primero se elige la categoría
-  // (y subcategoría) y recién ahí aparecen sus productos, para que el
-  // listado no abra directo en una tabla larga.
-  const requestedParent =
-    typeof searchParams.parent === "string" ? searchParams.parent : undefined;
-  const activeParent =
-    requestedParent && byParent.some(([p]) => p === requestedParent) ? requestedParent : null;
-
-  const productsInParent = byParent.find(([p]) => p === activeParent)?.[1] ?? [];
-  const bySubcategory = groupBy(productsInParent, (p) => p.category);
-
+  // No se preselecciona ninguna categoría: primero se elige la categoría y
+  // recién ahí aparecen sus productos, para que el listado no abra directo
+  // en una tabla larga.
   const requestedCategory =
     typeof searchParams.category === "string" ? searchParams.category : undefined;
   const activeCategory =
-    requestedCategory && bySubcategory.some(([c]) => c === requestedCategory)
+    requestedCategory && byCategory.some(([c]) => c === requestedCategory)
       ? requestedCategory
       : null;
 
-  const activeProducts = bySubcategory.find(([c]) => c === activeCategory)?.[1] ?? [];
+  const activeProducts = byCategory.find(([c]) => c === activeCategory)?.[1] ?? [];
   const activeSchedule = activeCategory ? scheduleByCategory.get(activeCategory) : undefined;
 
-  function parentHref(parent: string): string {
-    return `/admin/productos?parent=${encodeURIComponent(parent)}`;
-  }
   function categoryHref(category: string): string {
-    return `/admin/productos?parent=${encodeURIComponent(activeParent ?? NO_PARENT)}&category=${encodeURIComponent(category)}`;
+    return `/admin/productos?category=${encodeURIComponent(category)}`;
   }
 
   return (
@@ -75,26 +61,26 @@ export default async function AdminProductsPage(
         </Link>
       </div>
 
-      {byParent.length === 0 ? (
+      {byCategory.length === 0 ? (
         <p className="mt-6 text-sm text-zinc-500">Todavía no cargaste ningún producto.</p>
       ) : (
         <>
-          {/* Categorías (padre) */}
-          <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
-            {byParent.map(([parent, products]) => (
+          {/* Categorías */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {byCategory.map(([category, products]) => (
               <Link
-                key={parent}
-                href={parentHref(parent)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition ${
-                  parent === activeParent
+                key={category}
+                href={categoryHref(category)}
+                className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition ${
+                  category === activeCategory
                     ? "bg-orange-600 text-white"
                     : "bg-orange-50 text-orange-700 hover:bg-orange-100"
                 }`}
               >
-                📁 {parent === NO_PARENT ? "Sin categoría" : parent}
+                🏷️ {category}
                 <span
                   className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
-                    parent === activeParent
+                    category === activeCategory
                       ? "bg-white/25 text-white"
                       : "bg-orange-200 text-orange-800"
                   }`}
@@ -105,43 +91,9 @@ export default async function AdminProductsPage(
             ))}
           </div>
 
-          {!activeParent && (
+          {!activeCategory && (
             <p className="mt-4 text-sm text-zinc-500">
               Elegí una categoría para ver sus productos.
-            </p>
-          )}
-
-          {/* Subcategorías dentro de la categoría elegida */}
-          {activeParent && bySubcategory.length > 0 && (
-            <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto">
-              {bySubcategory.map(([category, products]) => (
-                <Link
-                  key={category}
-                  href={categoryHref(category)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition ${
-                    category === activeCategory
-                      ? "bg-zinc-800 text-white"
-                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                  }`}
-                >
-                  🏷️ {category}
-                  <span
-                    className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
-                      category === activeCategory
-                        ? "bg-white/25 text-white"
-                        : "bg-zinc-200 text-zinc-600"
-                    }`}
-                  >
-                    {products.length}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {activeParent && !activeCategory && bySubcategory.length > 0 && (
-            <p className="mt-4 text-sm text-zinc-500">
-              Elegí una subcategoría para ver sus productos.
             </p>
           )}
 
