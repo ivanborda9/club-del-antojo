@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
 import { useCart } from "@/context/CartContext";
-import type { PaymentMethod } from "@/types";
+import type { PaymentMethod, Product } from "@/types";
+
+type UpsellOffer = {
+  triggerProductId: string;
+  offerProductId: string;
+  offerPrice: number;
+  offerProduct: Product;
+};
 
 export default function CheckoutPage() {
-  const { items, totalPrice, clear } = useCart();
+  const { items, totalPrice, addItem, clear } = useCart();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -17,6 +24,49 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [transferSent, setTransferSent] = useState(false);
   const [cashConfirmed, setCashConfirmed] = useState(false);
+  const [upsellOffers, setUpsellOffers] = useState<UpsellOffer[]>([]);
+
+  const cartProductIds = items.map((item) => item.product.id).sort().join(",");
+
+  useEffect(() => {
+    let cancelled = false;
+    const productIds = cartProductIds ? cartProductIds.split(",") : [];
+    fetch("/api/upsells", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productIds }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setUpsellOffers(data.offers ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setUpsellOffers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cartProductIds]);
+
+  // Línea de descuento a mostrar: para cada oferta aplicable, si ya se
+  // cumplió (producto ofrecido en el carrito, y si es "2x1" del mismo
+  // producto con 2+ unidades) restamos una unidad al precio especial. El
+  // total real siempre lo recalcula el servidor igual — esto es solo la
+  // vidriera para que el cliente vea el descuento antes de pagar.
+  const appliedUpsells = upsellOffers.filter((offer) => {
+    const cartItem = items.find((it) => it.product.id === offer.offerProductId);
+    if (!cartItem) return false;
+    const sameProduct = offer.triggerProductId === offer.offerProductId;
+    return sameProduct ? cartItem.quantity >= 2 : true;
+  });
+  const upsellDiscount = appliedUpsells.reduce(
+    (sum, offer) => sum + Math.max(0, offer.offerProduct.salePrice - offer.offerPrice),
+    0
+  );
+  const pendingUpsells = upsellOffers.filter(
+    (offer) => !appliedUpsells.some((a) => a.offerProductId === offer.offerProductId)
+  );
+  const displayTotal = totalPrice - upsellDiscount;
 
   const isFormValid = name.trim() && phone.trim() && address.trim();
 
@@ -186,11 +236,37 @@ export default function CheckoutPage() {
             </li>
           ))}
         </ul>
+        {upsellDiscount > 0 && (
+          <div className="mt-1 flex justify-between text-sm text-emerald-600">
+            <span>🎉 Descuento especial</span>
+            <span>−{formatPrice(upsellDiscount)}</span>
+          </div>
+        )}
         <div className="mt-2 flex justify-between border-t border-orange-100 pt-2 text-sm font-bold text-zinc-800">
           <span>Total</span>
-          <span>{formatPrice(totalPrice)}</span>
+          <span>{formatPrice(displayTotal)}</span>
         </div>
       </div>
+
+      {pendingUpsells.map((offer) => (
+        <div
+          key={offer.triggerProductId}
+          className="mt-3 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3"
+        >
+          <span className="text-2xl">{offer.offerProduct.emoji}</span>
+          <p className="flex-1 text-sm text-emerald-800">
+            Agregá <strong>{offer.offerProduct.name}</strong> por solo{" "}
+            <strong>{formatPrice(offer.offerPrice)}</strong>
+          </p>
+          <button
+            type="button"
+            onClick={() => addItem(offer.offerProduct)}
+            className="h-9 shrink-0 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white active:scale-95"
+          >
+            Agregar
+          </button>
+        </div>
+      ))}
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-3">
         <Field label="Nombre y apellido">
@@ -271,7 +347,7 @@ export default function CheckoutPage() {
           {loading
             ? "Procesando…"
             : method === "mercadopago"
-              ? `Pagar ${formatPrice(totalPrice)} con Mercado Pago`
+              ? `Pagar ${formatPrice(displayTotal)} con Mercado Pago`
               : method === "efectivo"
                 ? "Confirmar pedido (pago en efectivo)"
                 : "Confirmar pedido y ver datos de transferencia"}

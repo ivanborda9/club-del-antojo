@@ -121,6 +121,24 @@ export const siteSettings = sqliteTable("site_settings", {
   value: text("value").notNull(),
 });
 
+// Oferta que se muestra antes de pagar cuando "triggerProductId" está en el
+// carrito (ej. bebida con alcohol → ofrecer hielo con descuento). Un solo
+// producto gatillo tiene a lo sumo una oferta activa (unique). offerPrice es
+// el precio especial de UNA unidad de offerProductId — puede ser el mismo
+// producto que el gatillo (ej. "llevate la 2da unidad al 40% menos").
+export const productUpsells = sqliteTable("product_upsells", {
+  id: text("id").primaryKey(),
+  triggerProductId: text("trigger_product_id")
+    .notNull()
+    .unique()
+    .references(() => products.id, { onDelete: "cascade" }),
+  offerProductId: text("offer_product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  offerPrice: real("offer_price").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});
+
 export type ProductRow = typeof products.$inferSelect;
 export type NewProductRow = typeof products.$inferInsert;
 export type OrderRow = typeof orders.$inferSelect;
@@ -137,3 +155,5 @@ export type CategoryScheduleRow = typeof categorySchedules.$inferSelect;
 export type NewCategoryScheduleRow = typeof categorySchedules.$inferInsert;
 export type SiteSettingRow = typeof siteSettings.$inferSelect;
 export type NewSiteSettingRow = typeof siteSettings.$inferInsert;
+export type ProductUpsellRow = typeof productUpsells.$inferSelect;
+export type NewProductUpsellRow = typeof productUpsells.$inferInsert;

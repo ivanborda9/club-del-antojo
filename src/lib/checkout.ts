@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { orderItems, orders, products } from "@/lib/db/schema";
+import { getUpsellOffersForProductIds } from "@/lib/db/queries";
 import { isWithinSchedule } from "@/lib/schedule";
 import { notifyRidersOfNewOrder } from "@/lib/push";
 
@@ -57,6 +58,36 @@ export async function createOrderFromCart(
       unitCost: product.costPrice,
       quantity,
     });
+  }
+
+  // Ofertas "antes de pagar" (ej. llevás alcohol → hielo con descuento, o
+  // 2x1 en el mismo producto): se recalculan acá, nunca se confía en un
+  // precio que mande el cliente. Si el producto gatillo y el producto
+  // ofrecido están los dos en el carrito, se descuenta UNA unidad de este
+  // último al precio especial — el resto de sus unidades (si pidió más de
+  // una) van al precio normal.
+  const resolvedProductIds = resolved.map((it) => it.productId);
+  const upsellOffers = await getUpsellOffersForProductIds(resolvedProductIds);
+  const discountedProductIds = new Set<string>();
+  for (const offer of upsellOffers) {
+    if (discountedProductIds.has(offer.offerProductId)) continue;
+    const offerIndex = resolved.findIndex((it) => it.productId === offer.offerProductId);
+    if (offerIndex === -1) continue;
+
+    const sameProduct = offer.triggerProductId === offer.offerProductId;
+    const offerItem = resolved[offerIndex];
+    // "2x1"/2da unidad más barata del mismo producto: hace falta una
+    // segunda unidad además de la que gatilla la oferta.
+    if (sameProduct && offerItem.quantity < 2) continue;
+    if (!sameProduct && !resolved.some((it) => it.productId === offer.triggerProductId)) continue;
+
+    discountedProductIds.add(offer.offerProductId);
+    if (offerItem.quantity === 1) {
+      offerItem.unitPrice = offer.offerPrice;
+    } else {
+      resolved[offerIndex] = { ...offerItem, quantity: offerItem.quantity - 1 };
+      resolved.push({ ...offerItem, quantity: 1, unitPrice: offer.offerPrice });
+    }
   }
 
   const total = resolved.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);

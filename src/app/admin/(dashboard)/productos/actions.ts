@@ -4,9 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
   clearCategorySchedule,
+  clearProductUpsell,
   createProduct,
   deleteProduct,
   setCategorySchedule,
+  setProductUpsell,
   updateProduct,
   type ProductInput,
 } from "@/lib/db/queries";
@@ -116,4 +118,23 @@ export async function clearCategoryScheduleAction(formData: FormData): Promise<v
   await clearCategorySchedule(category);
   revalidatePath("/admin/productos");
   revalidatePath("/");
+}
+
+export async function setProductUpsellAction(formData: FormData): Promise<void> {
+  const triggerProductId = String(formData.get("triggerProductId") ?? "").trim();
+  const offerProductId = String(formData.get("offerProductId") ?? "").trim();
+  const offerPrice = Number(formData.get("offerPrice"));
+  if (!triggerProductId || !offerProductId) return;
+  if (!Number.isFinite(offerPrice) || offerPrice < 0) return;
+
+  await setProductUpsell(triggerProductId, offerProductId, offerPrice);
+  revalidatePath("/admin/productos");
+}
+
+export async function clearProductUpsellAction(formData: FormData): Promise<void> {
+  const triggerProductId = String(formData.get("triggerProductId") ?? "").trim();
+  if (!triggerProductId) return;
+
+  await clearProductUpsell(triggerProductId);
+  revalidatePath("/admin/productos");
 }

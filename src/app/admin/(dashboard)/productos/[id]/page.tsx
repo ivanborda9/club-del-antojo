@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getAllProducts, getProductById } from "@/lib/db/queries";
+import { getAllProducts, getProductById, getUpsellForProduct } from "@/lib/db/queries";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { updateProductAction } from "../actions";
 
@@ -7,9 +7,10 @@ export default async function EditProductPage(
   props: PageProps<"/admin/productos/[id]">
 ) {
   const { id } = await props.params;
-  const [product, productList] = await Promise.all([
+  const [product, productList, upsell] = await Promise.all([
     getProductById(id),
     getAllProducts(),
+    getUpsellForProduct(id),
   ]);
 
   if (!product) notFound();
@@ -29,6 +30,8 @@ export default async function EditProductPage(
           product={product}
           categories={categories}
           parentCategories={parentCategories}
+          allProducts={productList}
+          upsell={upsell ?? null}
         />
       </div>
     </div>

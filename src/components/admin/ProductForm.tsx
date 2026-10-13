@@ -5,17 +5,27 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import { marginPercent } from "@/lib/margin";
 import type { ProductFormState } from "@/app/admin/(dashboard)/productos/actions";
 import type { ProductRow } from "@/lib/db/schema";
+import { ProductUpsellControl } from "./ProductUpsellControl";
 
 type Props = {
   action: (state: ProductFormState, formData: FormData) => Promise<ProductFormState>;
   product?: ProductRow;
   categories: string[];
   parentCategories: string[];
+  allProducts?: ProductRow[];
+  upsell?: { offerProductId: string; offerPrice: number; offerProductName: string } | null;
 };
 
 const initialState: ProductFormState = { error: null };
 
-export function ProductForm({ action, product, categories, parentCategories }: Props) {
+export function ProductForm({
+  action,
+  product,
+  categories,
+  parentCategories,
+  allProducts,
+  upsell,
+}: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [costPrice, setCostPrice] = useState(product?.costPrice ?? 0);
   const [salePrice, setSalePrice] = useState(product?.salePrice ?? 0);
@@ -53,6 +63,7 @@ export function ProductForm({ action, product, categories, parentCategories }: P
   }
 
   return (
+    <>
     <form action={formAction} className="max-w-lg space-y-3">
       <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
 
@@ -269,6 +280,17 @@ export function ProductForm({ action, product, categories, parentCategories }: P
         {pending ? "Guardando…" : uploading ? "Esperando imagen…" : "Guardar producto"}
       </button>
     </form>
+
+    {product && allProducts && (
+      <div className="mt-4 max-w-lg">
+        <ProductUpsellControl
+          triggerProductId={product.id}
+          allProducts={allProducts}
+          upsell={upsell ?? null}
+        />
+      </div>
+    )}
+    </>
   );
 }
 

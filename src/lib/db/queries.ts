@@ -6,6 +6,7 @@ import {
   categorySchedules,
   orderItems,
   orders,
+  productUpsells,
   products,
   pushSubscriptions,
   riders,
@@ -184,6 +185,85 @@ export async function updateProduct(id: string, input: ProductInput): Promise<vo
 
 export async function deleteProduct(id: string): Promise<void> {
   await db.delete(products).where(eq(products.id, id));
+}
+
+// ---------- Ofertas antes de pagar (upsell) ----------
+
+// La oferta configurada para un producto gatillo, con los datos del
+// producto ofrecido (para mostrarlos en el admin).
+export async function getUpsellForProduct(triggerProductId: string) {
+  const rows = await db
+    .select({
+      id: productUpsells.id,
+      triggerProductId: productUpsells.triggerProductId,
+      offerProductId: productUpsells.offerProductId,
+      offerPrice: productUpsells.offerPrice,
+      offerProductName: products.name,
+    })
+    .from(productUpsells)
+    .innerJoin(products, eq(products.id, productUpsells.offerProductId))
+    .where(eq(productUpsells.triggerProductId, triggerProductId))
+    .limit(1);
+  return rows[0];
+}
+
+// Crea o reemplaza la oferta de un producto gatillo (a lo sumo una por
+// producto).
+export async function setProductUpsell(
+  triggerProductId: string,
+  offerProductId: string,
+  offerPrice: number
+): Promise<void> {
+  const existing = await db
+    .select()
+    .from(productUpsells)
+    .where(eq(productUpsells.triggerProductId, triggerProductId))
+    .limit(1);
+  if (existing[0]) {
+    await db
+      .update(productUpsells)
+      .set({ offerProductId, offerPrice })
+      .where(eq(productUpsells.triggerProductId, triggerProductId));
+    return;
+  }
+  await db
+    .insert(productUpsells)
+    .values({ id: randomUUID(), triggerProductId, offerProductId, offerPrice });
+}
+
+export async function clearProductUpsell(triggerProductId: string): Promise<void> {
+  await db.delete(productUpsells).where(eq(productUpsells.triggerProductId, triggerProductId));
+}
+
+// Ofertas aplicables para el carrito actual: el producto gatillo está en
+// `productIds`. Se usa tanto para mostrar el cartel en el checkout como
+// (de nuevo, server-side) para aplicar el precio especial al crear el
+// pedido — nunca se confía en lo que mande el cliente. Envuelto en
+// safeQuery: si falta la migración, el checkout sigue funcionando sin
+// ofertas en vez de romperse.
+export async function getUpsellOffersForProductIds(productIds: string[]) {
+  return safeQuery(async () => {
+    if (!productIds.length) return [];
+    const rows = await db
+      .select({
+        triggerProductId: productUpsells.triggerProductId,
+        offerProductId: productUpsells.offerProductId,
+        offerPrice: productUpsells.offerPrice,
+        offerProduct: {
+          id: products.id,
+          name: products.name,
+          emoji: products.emoji,
+          imageUrl: products.imageUrl,
+          salePrice: products.salePrice,
+          stock: products.stock,
+          active: products.active,
+        },
+      })
+      .from(productUpsells)
+      .innerJoin(products, eq(products.id, productUpsells.offerProductId))
+      .where(inArray(productUpsells.triggerProductId, productIds));
+    return rows.filter((r) => r.offerProduct.active);
+  }, []);
 }
 
 // ---------- Pedidos ----------
