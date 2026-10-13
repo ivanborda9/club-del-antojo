@@ -31,8 +31,48 @@ export function HomeClient({
   initialProductId,
 }: Props) {
   const router = useRouter();
+
+  // Categoría padre de cada categoría (si tiene), y qué categorías van
+  // sueltas en el nivel superior (sin padre) — se arma una sola vez a
+  // partir de los productos, que ya traen category + parentCategory.
+  const categoryInfo = useMemo(() => {
+    const parentByCategory = new Map<string, string | null>();
+    const emojiByCategory = new Map<string, string>();
+    for (const p of products) {
+      if (!parentByCategory.has(p.category)) {
+        parentByCategory.set(p.category, p.parentCategory);
+        emojiByCategory.set(p.category, p.emoji);
+      }
+    }
+    const parentOrder: string[] = [];
+    const parentEmoji = new Map<string, string>();
+    const childrenByParent = new Map<string, string[]>();
+    const orphanCategories: string[] = [];
+    for (const category of categories) {
+      const parent = parentByCategory.get(category) ?? null;
+      if (parent) {
+        if (!childrenByParent.has(parent)) {
+          parentOrder.push(parent);
+          parentEmoji.set(parent, emojiByCategory.get(category) ?? "🛒");
+          childrenByParent.set(parent, []);
+        }
+        childrenByParent.get(parent)!.push(category);
+      } else {
+        orphanCategories.push(category);
+      }
+    }
+    const topLevel = [
+      ...parentOrder.map((p) => ({ label: p, emoji: parentEmoji.get(p) ?? "🛒" })),
+      ...orphanCategories.map((c) => ({ label: c, emoji: emojiByCategory.get(c) ?? "🛒" })),
+    ];
+    return { parentByCategory, childrenByParent, topLevel };
+  }, [products, categories]);
+
   const [activeCategory, setActiveCategory] = useState<string | null>(
     initialCategory && categories.includes(initialCategory) ? initialCategory : null
+  );
+  const [activeParentCategory, setActiveParentCategory] = useState<string | null>(
+    initialCategory ? (categoryInfo.parentByCategory.get(initialCategory) ?? null) : null
   );
   const [cartOpen, setCartOpen] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(initialProductId);
@@ -51,9 +91,12 @@ export function HomeClient({
     setAppliedSignal(signal);
     if (initialCategory && categories.includes(initialCategory)) {
       setActiveCategory(initialCategory);
+      setActiveParentCategory(categoryInfo.parentByCategory.get(initialCategory) ?? null);
     }
     if (initialProductId) {
-      setActiveCategory(null); // aseguramos que el producto esté visible, sea cual sea su categoría
+      // aseguramos que el producto esté visible, sea cual sea su categoría
+      setActiveCategory(null);
+      setActiveParentCategory(null);
       setHighlightedId(initialProductId);
     }
   }
@@ -83,22 +126,38 @@ export function HomeClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appliedSignal]);
 
-  const visibleProducts = useMemo(
-    () =>
-      activeCategory
-        ? products.filter((product) => product.category === activeCategory)
-        : products,
-    [products, activeCategory]
-  );
+  function handleSelectTopLevel(label: string | null) {
+    if (label !== null && categoryInfo.childrenByParent.has(label)) {
+      setActiveParentCategory(label);
+      setActiveCategory(null);
+    } else {
+      setActiveParentCategory(null);
+      setActiveCategory(label);
+    }
+  }
+
+  const subLevel = activeParentCategory
+    ? (categoryInfo.childrenByParent.get(activeParentCategory) ?? [])
+    : [];
+
+  const visibleProducts = useMemo(() => {
+    if (activeCategory) return products.filter((product) => product.category === activeCategory);
+    if (activeParentCategory)
+      return products.filter((product) => product.parentCategory === activeParentCategory);
+    return products;
+  }, [products, activeCategory, activeParentCategory]);
 
   return (
     <div className="flex flex-1 flex-col pb-28">
       <div className="sticky top-0 z-30">
         <Header onCartClick={() => setCartOpen(true)} />
         <CategoryTabs
-          categories={categories}
-          active={activeCategory}
-          onSelect={setActiveCategory}
+          topLevel={categoryInfo.topLevel}
+          activeTopLevel={activeParentCategory ?? activeCategory}
+          onSelectTopLevel={handleSelectTopLevel}
+          subLevel={subLevel}
+          activeSub={activeCategory}
+          onSelectSub={setActiveCategory}
         />
       </div>
 

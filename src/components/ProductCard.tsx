@@ -55,7 +55,7 @@ export function ProductCard({
       </p>
 
       {inCart ? (
-        <div className="mt-2 flex items-center justify-between rounded-full bg-orange-600 text-white">
+        <div className="mt-2 flex items-center justify-between rounded-full bg-gradient-to-r from-orange-600 to-red-500 text-white shadow-sm">
           <button
             type="button"
             onClick={() => setQuantity(product.id, inCart.quantity - 1)}
@@ -80,7 +80,7 @@ export function ProductCard({
           type="button"
           onClick={() => addItem(product)}
           disabled={outOfStock}
-          className="mt-2 h-9 rounded-full border border-orange-600 text-sm font-semibold text-orange-600 active:scale-95 transition disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400"
+          className="mt-2 h-9 rounded-full bg-gradient-to-r from-orange-600 to-red-500 text-sm font-bold text-white shadow-sm active:scale-95 transition disabled:cursor-not-allowed disabled:bg-none disabled:bg-zinc-200 disabled:text-zinc-400 disabled:shadow-none"
         >
           {outOfStock ? "Sin stock" : "Agregar"}
         </button>

@@ -4,6 +4,7 @@ export type Product = {
   id: string;
   name: string;
   category: string;
+  parentCategory: string | null;
   emoji: string;
   imageUrl: string | null;
   description: string | null;
