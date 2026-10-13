@@ -35,12 +35,13 @@ export default async function AdminProductsPage(
 
   const byParent = groupBy(productList, (p) => p.parentCategory || NO_PARENT);
 
+  // No se preselecciona ninguna categoría: primero se elige la categoría
+  // (y subcategoría) y recién ahí aparecen sus productos, para que el
+  // listado no abra directo en una tabla larga.
   const requestedParent =
     typeof searchParams.parent === "string" ? searchParams.parent : undefined;
   const activeParent =
-    requestedParent && byParent.some(([p]) => p === requestedParent)
-      ? requestedParent
-      : (byParent[0]?.[0] ?? null);
+    requestedParent && byParent.some(([p]) => p === requestedParent) ? requestedParent : null;
 
   const productsInParent = byParent.find(([p]) => p === activeParent)?.[1] ?? [];
   const bySubcategory = groupBy(productsInParent, (p) => p.category);
@@ -50,7 +51,7 @@ export default async function AdminProductsPage(
   const activeCategory =
     requestedCategory && bySubcategory.some(([c]) => c === requestedCategory)
       ? requestedCategory
-      : (bySubcategory[0]?.[0] ?? null);
+      : null;
 
   const activeProducts = bySubcategory.find(([c]) => c === activeCategory)?.[1] ?? [];
   const activeSchedule = activeCategory ? scheduleByCategory.get(activeCategory) : undefined;
@@ -104,8 +105,14 @@ export default async function AdminProductsPage(
             ))}
           </div>
 
+          {!activeParent && (
+            <p className="mt-4 text-sm text-zinc-500">
+              Elegí una categoría para ver sus productos.
+            </p>
+          )}
+
           {/* Subcategorías dentro de la categoría elegida */}
-          {bySubcategory.length > 0 && (
+          {activeParent && bySubcategory.length > 0 && (
             <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto">
               {bySubcategory.map(([category, products]) => (
                 <Link
@@ -130,6 +137,12 @@ export default async function AdminProductsPage(
                 </Link>
               ))}
             </div>
+          )}
+
+          {activeParent && !activeCategory && bySubcategory.length > 0 && (
+            <p className="mt-4 text-sm text-zinc-500">
+              Elegí una subcategoría para ver sus productos.
+            </p>
           )}
 
           {activeCategory && (
