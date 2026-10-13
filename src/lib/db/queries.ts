@@ -190,21 +190,25 @@ export async function deleteProduct(id: string): Promise<void> {
 // ---------- Ofertas antes de pagar (upsell) ----------
 
 // La oferta configurada para un producto gatillo, con los datos del
-// producto ofrecido (para mostrarlos en el admin).
+// producto ofrecido (para mostrarlos en el admin). Envuelto en safeQuery:
+// si todavía falta aplicar la migración de "product_upsells", la página de
+// editar producto no se tiene que romper por esto.
 export async function getUpsellForProduct(triggerProductId: string) {
-  const rows = await db
-    .select({
-      id: productUpsells.id,
-      triggerProductId: productUpsells.triggerProductId,
-      offerProductId: productUpsells.offerProductId,
-      offerPrice: productUpsells.offerPrice,
-      offerProductName: products.name,
-    })
-    .from(productUpsells)
-    .innerJoin(products, eq(products.id, productUpsells.offerProductId))
-    .where(eq(productUpsells.triggerProductId, triggerProductId))
-    .limit(1);
-  return rows[0];
+  return safeQuery(async () => {
+    const rows = await db
+      .select({
+        id: productUpsells.id,
+        triggerProductId: productUpsells.triggerProductId,
+        offerProductId: productUpsells.offerProductId,
+        offerPrice: productUpsells.offerPrice,
+        offerProductName: products.name,
+      })
+      .from(productUpsells)
+      .innerJoin(products, eq(products.id, productUpsells.offerProductId))
+      .where(eq(productUpsells.triggerProductId, triggerProductId))
+      .limit(1);
+    return rows[0];
+  }, undefined);
 }
 
 // Crea o reemplaza la oferta de un producto gatillo (a lo sumo una por
