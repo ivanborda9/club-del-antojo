@@ -252,31 +252,45 @@ export default function CheckoutPage() {
       {pendingUpsells.map((offer) => (
         <div
           key={offer.triggerProductId}
-          className="mt-3 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3"
+          className="mt-3 overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-3.5 text-white shadow-lg"
         >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-2xl">
-            {offer.offerProduct.imageUrl ? (
-              <Image
-                src={offer.offerProduct.imageUrl}
-                alt=""
-                width={48}
-                height={48}
-                className="h-full w-full object-contain p-1"
-              />
-            ) : (
-              offer.offerProduct.emoji
-            )}
-          </div>
-          <p className="flex-1 text-sm text-emerald-800">
-            Agregá <strong>{offer.offerProduct.name}</strong> por solo{" "}
-            <strong>{formatPrice(offer.offerPrice)}</strong>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-emerald-50">
+            🎁 Oferta especial para vos
           </p>
+          <div className="mt-2 flex items-center gap-3">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white text-4xl shadow-sm">
+              {offer.offerProduct.imageUrl ? (
+                <Image
+                  src={offer.offerProduct.imageUrl}
+                  alt=""
+                  width={80}
+                  height={80}
+                  className="h-full w-full object-contain p-1"
+                />
+              ) : (
+                offer.offerProduct.emoji
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="line-clamp-2 text-sm font-bold leading-tight">
+                {offer.offerProduct.name}
+              </p>
+              <p className="mt-1 flex items-baseline gap-1.5">
+                <span className="text-lg font-extrabold">{formatPrice(offer.offerPrice)}</span>
+                {offer.offerProduct.salePrice > offer.offerPrice && (
+                  <span className="text-xs font-medium text-emerald-100 line-through">
+                    {formatPrice(offer.offerProduct.salePrice)}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => addItem(offer.offerProduct)}
-            className="h-9 shrink-0 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white active:scale-95"
+            className="mt-3 h-11 w-full rounded-full bg-white text-sm font-extrabold text-emerald-700 shadow-sm active:scale-[0.98] transition"
           >
-            Agregar
+            Sí, lo quiero agregar
           </button>
         </div>
       ))}
