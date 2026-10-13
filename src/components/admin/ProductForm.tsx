@@ -99,6 +99,16 @@ export function ProductForm({ action, product, categories, parentCategories }: P
         />
       </Field>
 
+      <Field label="Descripción (opcional)">
+        <textarea
+          name="description"
+          defaultValue={product?.description ?? ""}
+          rows={3}
+          className="input resize-none"
+          placeholder="Ej: Incluye 4 medallones de 100g c/u y pan de hamburguesa Panacity x4"
+        />
+      </Field>
+
       <div className="grid grid-cols-2 gap-3">
         <Field label="Categoría padre (opcional)">
           <input

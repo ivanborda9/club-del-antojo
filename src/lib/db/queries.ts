@@ -70,6 +70,7 @@ export async function getStorefrontProducts() {
         category: products.category,
         emoji: products.emoji,
         imageUrl: products.imageUrl,
+        description: products.description,
         salePrice: products.salePrice,
         stock: products.stock,
         scheduleStart: products.scheduleStart,
@@ -98,6 +99,7 @@ export async function getStorefrontProducts() {
       category: p.category,
       emoji: p.emoji,
       imageUrl: p.imageUrl,
+      description: p.description,
       salePrice: p.salePrice,
       stock: p.stock,
     }));
@@ -156,6 +158,7 @@ export type ProductInput = {
   parentCategory: string | null;
   emoji: string;
   imageUrl: string | null;
+  description: string | null;
   costPrice: number;
   salePrice: number;
   stock: number;

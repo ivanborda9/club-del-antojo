@@ -6,6 +6,7 @@ export type Product = {
   category: string;
   emoji: string;
   imageUrl: string | null;
+  description: string | null;
   salePrice: number;
   stock: number;
 };

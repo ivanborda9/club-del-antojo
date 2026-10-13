@@ -11,6 +11,7 @@ export const products = sqliteTable("products", {
   parentCategory: text("parent_category"),
   emoji: text("emoji").notNull().default("🛒"),
   imageUrl: text("image_url"),
+  description: text("description"),
   costPrice: real("cost_price").notNull().default(0),
   salePrice: real("sale_price").notNull(),
   stock: integer("stock").notNull().default(0),

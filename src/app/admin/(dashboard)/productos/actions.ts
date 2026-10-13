@@ -19,6 +19,7 @@ function parseProductForm(formData: FormData): ProductInput | { error: string } 
   const parentCategory = String(formData.get("parentCategory") ?? "").trim() || null;
   const emoji = String(formData.get("emoji") ?? "🛒").trim() || "🛒";
   const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
   const costPrice = Number(formData.get("costPrice"));
   const salePrice = Number(formData.get("salePrice"));
   const stock = Number(formData.get("stock"));
@@ -51,6 +52,7 @@ function parseProductForm(formData: FormData): ProductInput | { error: string } 
     parentCategory,
     emoji,
     imageUrl,
+    description,
     costPrice,
     salePrice,
     stock,

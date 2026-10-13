@@ -47,6 +47,9 @@ export function ProductCard({
       <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm font-medium text-zinc-800">
         {product.name}
       </p>
+      {product.description && (
+        <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{product.description}</p>
+      )}
       <p className="mt-1 text-base font-bold text-orange-600">
         {formatPrice(product.salePrice)}
       </p>
