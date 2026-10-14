@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
+import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import type { BoxSizeRow } from "@/lib/db/schema";
 import type { PaymentMethod, Product } from "@/types";
 
@@ -41,6 +42,11 @@ export function ArmarBoxClient({ sizes, products }: Props) {
     [quantities, products]
   );
   const totalItems = chosenItems.reduce((sum, it) => sum + it.quantity, 0);
+  const cashDiscount =
+    method === "efectivo" && selectedSize
+      ? Math.round(selectedSize.price * CASH_DISCOUNT_RATE)
+      : 0;
+  const displayBoxPrice = selectedSize ? selectedSize.price - cashDiscount : 0;
 
   function setQty(productId: string, qty: number, maxStock: number) {
     const clamped = Math.max(0, Math.min(qty, maxStock));
@@ -99,7 +105,7 @@ export function ArmarBoxClient({ sizes, products }: Props) {
       const message = [
         `Pedido "Armá tu Box" para ${siteConfig.name}`,
         "",
-        `Tamaño: ${selectedSize.name} — ${formatPrice(selectedSize.price)}`,
+        `Tamaño: ${selectedSize.name} — ${formatPrice(order.total)}`,
         "",
         "Productos para el box:",
         itemsSummary,
@@ -326,7 +332,7 @@ export function ArmarBoxClient({ sizes, products }: Props) {
               />
               <PaymentOption
                 id="efectivo"
-                label="Efectivo"
+                label="Efectivo 💵 5% off"
                 description="Pagás en el momento, cuando te entreguen el pedido"
                 selected={method === "efectivo"}
                 onSelect={() => setMethod("efectivo")}
@@ -345,9 +351,9 @@ export function ArmarBoxClient({ sizes, products }: Props) {
             {loading
               ? "Procesando…"
               : method === "mercadopago"
-                ? `Pagar ${formatPrice(selectedSize.price)} con Mercado Pago`
+                ? `Pagar ${formatPrice(displayBoxPrice)} con Mercado Pago`
                 : method === "efectivo"
-                  ? "Confirmar box (pago en efectivo)"
+                  ? `Confirmar box (${formatPrice(displayBoxPrice)} en efectivo)`
                   : "Confirmar box y ver datos de transferencia"}
           </button>
         </section>
@@ -360,7 +366,10 @@ export function ArmarBoxClient({ sizes, products }: Props) {
               {totalItems} {totalItems === 1 ? "producto elegido" : "productos elegidos"}
             </span>
             <span className="font-extrabold text-purple-700">
-              Box {selectedSize.name} — {formatPrice(selectedSize.price)}
+              Box {selectedSize.name} — {formatPrice(displayBoxPrice)}
+              {cashDiscount > 0 && (
+                <span className="ml-1 text-xs font-medium text-emerald-600">(5% off)</span>
+              )}
             </span>
           </div>
         </div>

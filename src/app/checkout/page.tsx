@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
 import { useCart } from "@/context/CartContext";
+import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import type { PaymentMethod, Product } from "@/types";
 
 type UpsellOffer = {
@@ -67,7 +68,13 @@ export default function CheckoutPage() {
   const pendingUpsells = upsellOffers.filter(
     (offer) => !appliedUpsells.some((a) => a.offerProductId === offer.offerProductId)
   );
-  const displayTotal = totalPrice - upsellDiscount;
+  const subtotalAfterUpsells = totalPrice - upsellDiscount;
+  // Mismo redondeo que el servidor (por unidad, no sobre el total) — acá
+  // alcanza con la aproximación sobre el subtotal para la vidriera, el
+  // cobro real siempre lo recalcula el servidor.
+  const cashDiscount =
+    method === "efectivo" ? Math.round(subtotalAfterUpsells * CASH_DISCOUNT_RATE) : 0;
+  const displayTotal = subtotalAfterUpsells - cashDiscount;
 
   const isFormValid = name.trim() && phone.trim() && address.trim();
 
@@ -243,6 +250,12 @@ export default function CheckoutPage() {
             <span>−{formatPrice(upsellDiscount)}</span>
           </div>
         )}
+        {cashDiscount > 0 && (
+          <div className="mt-1 flex justify-between text-sm text-emerald-600">
+            <span>💵 5% off por pagar en efectivo</span>
+            <span>−{formatPrice(cashDiscount)}</span>
+          </div>
+        )}
         <div className="mt-2 flex justify-between border-t border-orange-100 pt-2 text-sm font-bold text-zinc-800">
           <span>Total</span>
           <span>{formatPrice(displayTotal)}</span>
@@ -356,7 +369,7 @@ export default function CheckoutPage() {
             />
             <PaymentOption
               id="efectivo"
-              label="Efectivo"
+              label="Efectivo 💵 5% off"
               description="Pagás en el momento, cuando te entreguen el pedido"
               selected={method === "efectivo"}
               onSelect={() => setMethod("efectivo")}

@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { orderItems, orders, products } from "@/lib/db/schema";
 import { getUpsellOffersForProductIds } from "@/lib/db/queries";
+import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import { isWithinSchedule } from "@/lib/schedule";
 import { notifyRidersOfNewOrder } from "@/lib/push";
 
@@ -87,6 +88,16 @@ export async function createOrderFromCart(
     } else {
       resolved[offerIndex] = { ...offerItem, quantity: offerItem.quantity - 1 };
       resolved.push({ ...offerItem, quantity: 1, unitPrice: offer.offerPrice });
+    }
+  }
+
+  // Incentivo por pagar en efectivo: se aplica sobre cada unidad, después
+  // de cualquier oferta antes de pagar, así order_items y order.total
+  // quedan consistentes entre sí (y con los reportes, que suman desde
+  // order_items).
+  if (paymentMethod === "efectivo") {
+    for (const it of resolved) {
+      it.unitPrice = Math.round(it.unitPrice * (1 - CASH_DISCOUNT_RATE));
     }
   }
 

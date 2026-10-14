@@ -5,6 +5,7 @@ import { boxSizes, orderItems, orders, products } from "@/lib/db/schema";
 import { isWithinSchedule } from "@/lib/schedule";
 import { notifyRidersOfNewOrder } from "@/lib/push";
 import { CheckoutError } from "@/lib/checkout";
+import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import type { Buyer, CheckoutItemInput } from "@/lib/checkout";
 
 export type BoxGift = { recipientName: string; message: string };
@@ -70,7 +71,11 @@ export async function createBoxOrderFromSelection(
     });
   }
 
-  const total = size.price;
+  // Mismo incentivo por pagar en efectivo que en el checkout normal.
+  const total =
+    paymentMethod === "efectivo"
+      ? Math.round(size.price * (1 - CASH_DISCOUNT_RATE))
+      : size.price;
   const orderId = randomUUID();
   const status = paymentMethod === "efectivo" ? "pagado" : "pendiente_pago";
 
