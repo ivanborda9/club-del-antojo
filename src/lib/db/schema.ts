@@ -44,8 +44,27 @@ export const orders = sqliteTable("orders", {
   mpPreferenceId: text("mp_preference_id"),
   mpPaymentId: text("mp_payment_id"),
   riderId: text("rider_id"),
+  // "Armá tu Box": pedido armado a medida (precio fijo por tamaño, no suma
+  // de los productos elegidos — esos quedan en order_items igual, para que
+  // el admin vea qué poner adentro, pero no se cobran por separado).
+  isBox: integer("is_box", { mode: "boolean" }).notNull().default(false),
+  boxSizeName: text("box_size_name"),
+  giftRecipientName: text("gift_recipient_name"),
+  giftMessage: text("gift_message"),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
   updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`),
+});
+
+// Tamaños disponibles para "Armá tu Box", con precio fijo cada uno
+// (configurable desde el admin). La cantidad de productos que entran no
+// tiene límite automático — se coordina directamente con el cliente.
+export const boxSizes = sqliteTable("box_sizes", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  price: real("price").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
 export const orderItems = sqliteTable("order_items", {
@@ -157,3 +176,5 @@ export type SiteSettingRow = typeof siteSettings.$inferSelect;
 export type NewSiteSettingRow = typeof siteSettings.$inferInsert;
 export type ProductUpsellRow = typeof productUpsells.$inferSelect;
 export type NewProductUpsellRow = typeof productUpsells.$inferInsert;
+export type BoxSizeRow = typeof boxSizes.$inferSelect;
+export type NewBoxSizeRow = typeof boxSizes.$inferInsert;

@@ -46,7 +46,12 @@ export default async function AdminOrdersPage(
             className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-3"
           >
             <div>
-              <p className="text-sm font-semibold text-zinc-800">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-zinc-800">
+                {order.isBox && (
+                  <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                    🎁 BOX
+                  </span>
+                )}
                 {order.customerName}
               </p>
               <p className="text-xs text-zinc-500">

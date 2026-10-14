@@ -32,6 +32,24 @@ export default async function OrderDetailPage(
         </span>
       </div>
 
+      {order.isBox && (
+        <div className="mt-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4">
+          <p className="text-sm font-extrabold text-emerald-800">
+            🎁 Armá tu Box — {order.boxSizeName}
+          </p>
+          <p className="mt-2 text-sm text-emerald-900">
+            <span className="font-semibold">Destinatario del regalo:</span>{" "}
+            {order.giftRecipientName}
+          </p>
+          {order.giftMessage && (
+            <div className="mt-2 rounded-xl bg-white p-3">
+              <p className="text-xs font-semibold text-zinc-500">Mensaje para la tarjeta</p>
+              <p className="mt-1 text-sm italic text-zinc-700">&quot;{order.giftMessage}&quot;</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">
         <p className="text-sm font-semibold text-zinc-800">{order.customerName}</p>
         <p className="text-sm text-zinc-500">{order.phone}</p>
@@ -68,21 +86,28 @@ export default async function OrderDetailPage(
       </div>
 
       <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">
-        <p className="text-sm font-semibold text-zinc-800">Productos</p>
+        <p className="text-sm font-semibold text-zinc-800">
+          {order.isBox ? "Qué poner adentro del box" : "Productos"}
+        </p>
         <ul className="mt-2 space-y-1 text-sm text-zinc-600">
           {items.map((item) => (
             <li key={item.id} className="flex justify-between">
               <span>
                 {item.quantity}x {item.productName}
               </span>
-              <span>{formatPrice(item.unitPrice * item.quantity)}</span>
+              {!order.isBox && <span>{formatPrice(item.unitPrice * item.quantity)}</span>}
             </li>
           ))}
         </ul>
         <div className="mt-2 flex justify-between border-t border-zinc-100 pt-2 text-sm font-bold text-zinc-800">
-          <span>Total</span>
+          <span>{order.isBox ? `Total (box ${order.boxSizeName})` : "Total"}</span>
           <span>{formatPrice(order.total)}</span>
         </div>
+        {order.isBox && (
+          <p className="mt-1 text-xs text-zinc-400">
+            Precio fijo del tamaño, no es la suma de los productos de arriba.
+          </p>
+        )}
       </div>
 
       <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">

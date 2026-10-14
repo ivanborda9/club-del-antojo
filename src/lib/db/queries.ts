@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "./client";
 import {
   banners,
+  boxSizes,
   categorySchedules,
   orderItems,
   orders,
@@ -14,6 +15,7 @@ import {
 } from "./schema";
 import type {
   NewBannerRow,
+  NewBoxSizeRow,
   NewCategoryScheduleRow,
   NewProductRow,
   NewPushSubscriptionRow,
@@ -270,6 +272,49 @@ export async function getUpsellOffersForProductIds(productIds: string[]) {
       .where(inArray(productUpsells.triggerProductId, productIds));
     return rows.filter((r) => r.offerProduct.active);
   }, []);
+}
+
+// ---------- Armá tu Box ----------
+
+// Tamaños visibles en la tienda. Envuelto en safeQuery: si falta la
+// migración, la solapa "Armá tu Box" no tiene que romper el resto del
+// sitio.
+export async function getActiveBoxSizes() {
+  return safeQuery(async () => {
+    const rows = await db.select().from(boxSizes).where(eq(boxSizes.active, true));
+    return rows.sort((a, b) => a.sortOrder - b.sortOrder);
+  }, []);
+}
+
+export async function getAllBoxSizes() {
+  const rows = await db.select().from(boxSizes);
+  return rows.sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export async function getBoxSizeById(id: string) {
+  return (await db.select().from(boxSizes).where(eq(boxSizes.id, id)).limit(1))[0];
+}
+
+export type BoxSizeInput = {
+  name: string;
+  price: number;
+  sortOrder: number;
+  active: boolean;
+};
+
+export async function createBoxSize(input: BoxSizeInput): Promise<string> {
+  const id = randomUUID();
+  const row: NewBoxSizeRow = { id, ...input };
+  await db.insert(boxSizes).values(row);
+  return id;
+}
+
+export async function updateBoxSize(id: string, input: BoxSizeInput): Promise<void> {
+  await db.update(boxSizes).set(input).where(eq(boxSizes.id, id));
+}
+
+export async function deleteBoxSize(id: string): Promise<void> {
+  await db.delete(boxSizes).where(eq(boxSizes.id, id));
 }
 
 // ---------- Pedidos ----------

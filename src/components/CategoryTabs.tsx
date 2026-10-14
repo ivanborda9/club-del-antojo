@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 // Paleta vivaz que rota por categoría/categoría padre, para que las
 // solapas llamen la atención (en vez de un solo color repetido). El orden
 // importa: colores vecinos quedan bien distinguibles entre sí.
@@ -44,6 +46,13 @@ export function CategoryTabs({
   return (
     <div className="border-b border-orange-100 bg-white/90 backdrop-blur">
       <div className="no-scrollbar flex gap-2.5 overflow-x-auto px-4 py-3">
+        <Link
+          href="/armar-box"
+          className="flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-br from-fuchsia-600 via-purple-600 to-indigo-600 px-4 py-2.5 text-sm font-extrabold tracking-tight text-white shadow-md shadow-black/10 transition active:scale-95"
+        >
+          <span className="text-lg leading-none">🎁</span>
+          Armá tu Box
+        </Link>
         {topLevel.map((item, i) => (
           <BigTab
             key={item.label}
