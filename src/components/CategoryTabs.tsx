@@ -44,13 +44,6 @@ export function CategoryTabs({
   return (
     <div className="border-b border-orange-100 bg-white/90 backdrop-blur">
       <div className="no-scrollbar flex gap-2.5 overflow-x-auto px-4 py-3">
-        <BigTab
-          label="Todos"
-          emoji="✨"
-          gradient="from-zinc-700 to-zinc-900"
-          isActive={activeTopLevel === null}
-          onClick={() => onSelectTopLevel(null)}
-        />
         {topLevel.map((item, i) => (
           <BigTab
             key={item.label}
@@ -58,7 +51,9 @@ export function CategoryTabs({
             emoji={item.emoji}
             gradient={paletteFor(i)}
             isActive={activeTopLevel === item.label}
-            onClick={() => onSelectTopLevel(item.label)}
+            // Tocar la que ya está activa la "destildá" (vuelve a ver todo),
+            // ya que no hay botón "Todos" aparte.
+            onClick={() => onSelectTopLevel(activeTopLevel === item.label ? null : item.label)}
           />
         ))}
       </div>
