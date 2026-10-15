@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { paletteFor } from "@/components/CategoryTabs";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import type { BoxSizeRow } from "@/lib/db/schema";
@@ -157,46 +158,52 @@ export function ArmarBoxClient({ sizes, products }: Props) {
   }
 
   return (
-    <div className="safe-bottom mx-auto max-w-md px-4 py-6 pb-28">
-      <Link href="/" className="text-xs text-zinc-400 underline underline-offset-2">
-        ← Volver a la tienda
-      </Link>
-      <h1 className="mt-2 text-xl font-extrabold text-zinc-900">🎁 Armá tu Box</h1>
-      <p className="mt-2 rounded-2xl bg-gradient-to-br from-fuchsia-600 via-purple-600 to-indigo-600 p-4 text-sm leading-relaxed text-white">
-        Elegí el tamaño del box y después los productos que te gustaría poner
-        adentro. Nosotros te armamos la caja lista para regalar, y al finalizar la
-        compra agregás lo que querés que diga la tarjeta de felicitación — nosotros
-        ponemos esa frase en el box y se lo enviamos a la persona que quieras.
-      </p>
+    <div className="safe-bottom mx-auto max-w-md pb-28">
+      <header className="bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 px-4 py-3.5 shadow-sm">
+        <Link href="/" className="text-xs text-white/80 underline underline-offset-2">
+          ← Volver a la tienda
+        </Link>
+        <h1 className="mt-1 text-lg font-extrabold tracking-tight text-white drop-shadow-sm">
+          🎁 Armá tu Box
+        </h1>
+        <p className="text-xs text-purple-50">
+          Elegí el tamaño, los productos y le ponemos tu mensaje en la tarjeta.
+        </p>
+      </header>
 
-      {/* Paso 1: tamaño */}
-      <section className="mt-5">
-        <p className="text-sm font-bold text-zinc-800">1. Elegí el tamaño</p>
-        <div className="mt-2 grid grid-cols-2 gap-3">
-          {sizes.map((size) => (
-            <button
-              key={size.id}
-              type="button"
-              onClick={() => setSizeId(size.id)}
-              className={`rounded-2xl border-2 p-4 text-left transition ${
-                sizeId === size.id
-                  ? "border-purple-600 bg-purple-50"
-                  : "border-zinc-100 bg-white hover:border-zinc-200"
-              }`}
-            >
-              <p className="text-base font-extrabold text-zinc-800">{size.name}</p>
-              <p className="mt-1 text-sm font-bold text-purple-600">
-                {formatPrice(size.price)}
-              </p>
-            </button>
-          ))}
-        </div>
-        {sizes.length === 0 && (
-          <p className="mt-2 text-sm text-zinc-500">
-            Todavía no hay tamaños configurados. Probá más tarde.
-          </p>
-        )}
-      </section>
+      <div className="px-4">
+        {/* Paso 1: tamaño */}
+        <section className="mt-5">
+          <p className="text-sm font-bold text-zinc-800">1. Elegí el tamaño</p>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            {sizes.map((size, i) => (
+              <button
+                key={size.id}
+                type="button"
+                onClick={() => setSizeId(size.id)}
+                className={`rounded-2xl p-4 text-left transition active:scale-95 ${
+                  sizeId === size.id
+                    ? `bg-gradient-to-br ${paletteFor(i)} text-white shadow-md shadow-black/10`
+                    : "border-2 border-zinc-100 bg-white text-zinc-800 hover:border-zinc-200"
+                }`}
+              >
+                <p className="text-base font-extrabold">{size.name}</p>
+                <p
+                  className={`mt-1 text-sm font-bold ${
+                    sizeId === size.id ? "text-white" : "text-purple-600"
+                  }`}
+                >
+                  {formatPrice(size.price)}
+                </p>
+              </button>
+            ))}
+          </div>
+          {sizes.length === 0 && (
+            <p className="mt-2 text-sm text-zinc-500">
+              Todavía no hay tamaños configurados. Probá más tarde.
+            </p>
+          )}
+        </section>
 
       {/* Paso 2: productos */}
       {selectedSize && (
@@ -358,6 +365,7 @@ export function ArmarBoxClient({ sizes, products }: Props) {
           </button>
         </section>
       )}
+      </div>
 
       {selectedSize && totalItems > 0 && (
         <div className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-purple-100 bg-white/95 px-4 py-3 backdrop-blur">
