@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Banners } from "@/components/Banners";
 import { CartBar } from "@/components/CartBar";
 import { CartSheet } from "@/components/CartSheet";
+import { CategoryRow } from "@/components/CategoryRow";
 import { CategoryTabs } from "@/components/CategoryTabs";
 import { Header } from "@/components/Header";
 import { ProductGrid } from "@/components/ProductGrid";
@@ -65,7 +66,18 @@ export function HomeClient({
       ...parentOrder.map((p) => ({ label: p, emoji: parentEmoji.get(p) ?? "🛒" })),
       ...orphanCategories.map((c) => ({ label: c, emoji: emojiByCategory.get(c) ?? "🛒" })),
     ];
-    return { parentByCategory, childrenByParent, topLevel };
+    return { parentByCategory, childrenByParent, topLevel, emojiByCategory };
+  }, [products, categories]);
+
+  // Productos agrupados por categoría, en el mismo orden que "categories" —
+  // para armar una fila-carrusel por categoría en la vista principal.
+  const productsByCategory = useMemo(() => {
+    const map = new Map<string, Product[]>();
+    for (const category of categories) map.set(category, []);
+    for (const product of products) {
+      map.get(product.category)?.push(product);
+    }
+    return map;
   }, [products, categories]);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(
@@ -136,6 +148,13 @@ export function HomeClient({
     }
   }
 
+  // "Ver todo" de una fila-carrusel: lleva a la vista de grilla completa de
+  // esa categoría, resaltando también su categoría padre si tiene.
+  function selectCategory(category: string) {
+    setActiveCategory(category);
+    setActiveParentCategory(categoryInfo.parentByCategory.get(category) ?? null);
+  }
+
   const subLevel = activeParentCategory
     ? (categoryInfo.childrenByParent.get(activeParentCategory) ?? [])
     : [];
@@ -168,7 +187,20 @@ export function HomeClient({
       </p>
 
       <main className="mx-auto w-full max-w-3xl flex-1">
-        <ProductGrid products={visibleProducts} highlightedId={highlightedId} />
+        {activeCategory || activeParentCategory ? (
+          <ProductGrid products={visibleProducts} highlightedId={highlightedId} />
+        ) : (
+          categories.map((category) => (
+            <CategoryRow
+              key={category}
+              category={category}
+              emoji={categoryInfo.emojiByCategory.get(category) ?? "🛒"}
+              products={productsByCategory.get(category) ?? []}
+              highlightedId={highlightedId}
+              onSeeAll={() => selectCategory(category)}
+            />
+          ))
+        )}
       </main>
 
       <footer className="flex items-center justify-center gap-4 px-4 py-6 text-center">
