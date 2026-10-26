@@ -72,20 +72,20 @@ function CompactProductCard({
         highlighted ? "border-orange-500 ring-2 ring-orange-400" : "border-orange-100"
       }`}
     >
-      <div className="relative flex h-20 items-center justify-center overflow-hidden rounded-lg bg-orange-50 text-2xl">
+      <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-orange-50 text-4xl">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
             sizes="45vw"
-            className="object-contain p-1"
+            className="object-contain p-2"
           />
         ) : (
           product.emoji
         )}
         {outOfStock && (
-          <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/80 text-[10px] font-semibold text-zinc-500">
+          <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/80 text-xs font-semibold text-zinc-500">
             Sin stock
           </span>
         )}
