@@ -110,6 +110,59 @@ export async function getStorefrontProducts() {
     }));
 }
 
+// Productos que se pueden elegir para "Armá tu Box" (subconjunto de los
+// publicados: hay que habilitarlos uno por uno desde el admin). Mismo
+// criterio de horario que el resto de la tienda. Envuelto en safeQuery:
+// si falta la migración de "include_in_box", el armador de box muestra
+// la lista vacía en vez de romper la página.
+export async function getBoxEligibleProducts() {
+  return safeQuery(async () => {
+    const [rows, restrictedCategories] = await Promise.all([
+      db
+        .select({
+          id: products.id,
+          name: products.name,
+          category: products.category,
+          parentCategory: products.parentCategory,
+          emoji: products.emoji,
+          imageUrl: products.imageUrl,
+          description: products.description,
+          salePrice: products.salePrice,
+          stock: products.stock,
+          scheduleStart: products.scheduleStart,
+          scheduleEnd: products.scheduleEnd,
+        })
+        .from(products)
+        .where(and(eq(products.active, true), eq(products.includeInBox, true)))
+        .orderBy(asc(products.category), asc(products.name)),
+      safeQuery(() => getAllCategorySchedules(), []),
+    ]);
+
+    const categoryScheduleByName = new Map(
+      restrictedCategories.map((c) => [c.category, c])
+    );
+
+    return rows
+      .filter((p) => isWithinSchedule(p.scheduleStart, p.scheduleEnd))
+      .filter((p) => {
+        const categorySchedule = categoryScheduleByName.get(p.category);
+        if (!categorySchedule) return true;
+        return isWithinSchedule(categorySchedule.scheduleStart, categorySchedule.scheduleEnd);
+      })
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        parentCategory: p.parentCategory,
+        emoji: p.emoji,
+        imageUrl: p.imageUrl,
+        description: p.description,
+        salePrice: p.salePrice,
+        stock: p.stock,
+      }));
+  }, []);
+}
+
 export async function getLowStockProducts(): Promise<ProductRow[]> {
   const rows = await db.select().from(products).where(eq(products.active, true));
   return rows
@@ -169,6 +222,7 @@ export type ProductInput = {
   stock: number;
   lowStockThreshold: number;
   active: boolean;
+  includeInBox: boolean;
   scheduleStart: string | null;
   scheduleEnd: string | null;
 };

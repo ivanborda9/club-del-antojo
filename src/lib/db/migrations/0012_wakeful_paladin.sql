@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `include_in_box` integer DEFAULT false NOT NULL;

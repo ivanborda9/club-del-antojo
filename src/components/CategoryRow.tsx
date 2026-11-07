@@ -72,7 +72,7 @@ function CompactProductCard({
         highlighted ? "border-orange-500 ring-2 ring-orange-400" : "border-orange-100"
       }`}
     >
-      <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-orange-50 text-6xl">
+      <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-lg bg-orange-50 text-6xl">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}

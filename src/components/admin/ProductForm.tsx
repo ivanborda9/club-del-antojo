@@ -229,6 +229,16 @@ export function ProductForm({
         Visible en la tienda
       </label>
 
+      <label className="flex items-center gap-2 text-sm text-zinc-700">
+        <input
+          type="checkbox"
+          name="includeInBox"
+          defaultChecked={product?.includeInBox ?? false}
+          className="h-4 w-4"
+        />
+        Se puede elegir para &quot;Armá tu Box&quot;
+      </label>
+
       <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-3">
         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
           <input

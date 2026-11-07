@@ -17,6 +17,10 @@ export const products = sqliteTable("products", {
   stock: integer("stock").notNull().default(0),
   lowStockThreshold: integer("low_stock_threshold").notNull().default(5),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
+  // Si se puede elegir como contenido de "Armá tu Box". Apagado por
+  // defecto: hay que habilitarlo producto por producto, no todo lo
+  // publicado tiene que poder entrar en un box.
+  includeInBox: integer("include_in_box", { mode: "boolean" }).notNull().default(false),
   // Horario de disponibilidad ("HH:MM", 24hs). Si ambos son null, el
   // producto está disponible todo el día (según "active"). Soporta rangos
   // que cruzan la medianoche, ej. 22:00–06:00.
