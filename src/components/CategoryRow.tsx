@@ -38,7 +38,7 @@ export function CategoryRow({
 
       <div className="no-scrollbar mt-1.5 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1">
         {products.map((product) => (
-          <div key={product.id} className="w-[calc(50%-0.25rem)] shrink-0 snap-start">
+          <div key={product.id} className="w-[60%] shrink-0 snap-start">
             <CompactProductCard
               product={product}
               highlighted={product.id === highlightedId}
@@ -72,14 +72,14 @@ function CompactProductCard({
         highlighted ? "border-orange-500 ring-2 ring-orange-400" : "border-orange-100"
       }`}
     >
-      <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-orange-50 text-5xl">
+      <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-orange-50 text-6xl">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
-            sizes="48vw"
-            className="object-contain p-0.5"
+            sizes="60vw"
+            className="object-contain"
           />
         ) : (
           product.emoji
