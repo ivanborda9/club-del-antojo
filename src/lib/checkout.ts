@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { orderItems, orders, products } from "@/lib/db/schema";
+import { boxSizes, orderItems, orders, products } from "@/lib/db/schema";
 import { getUpsellOffersForProductIds } from "@/lib/db/queries";
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import { isWithinSchedule } from "@/lib/schedule";
@@ -164,6 +164,16 @@ export async function cancelOrderAndRestoreStock(orderId: string): Promise<void>
       .set({ stock: sql`${products.stock} + ${item.quantity}` })
       .where(eq(products.id, item.productId));
   }
+
+  const orderRows = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+  const order = orderRows[0];
+  if (order?.isBox && order.boxSizeId) {
+    await db
+      .update(boxSizes)
+      .set({ stock: sql`${boxSizes.stock} + 1` })
+      .where(eq(boxSizes.id, order.boxSizeId));
+  }
+
   await db
     .update(orders)
     .set({ status: "cancelado", updatedAt: sql`(current_timestamp)` })

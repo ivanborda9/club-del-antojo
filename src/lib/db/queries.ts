@@ -352,6 +352,8 @@ export async function getBoxSizeById(id: string) {
 export type BoxSizeInput = {
   name: string;
   price: number;
+  imageUrl: string | null;
+  stock: number;
   sortOrder: number;
   active: boolean;
 };

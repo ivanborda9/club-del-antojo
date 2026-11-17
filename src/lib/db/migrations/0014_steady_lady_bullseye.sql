@@ -1,0 +1,1 @@
+ALTER TABLE `orders` ADD `box_size_id` text;

@@ -36,6 +36,9 @@ export async function createBoxOrderFromSelection(
   if (!size || !size.active) {
     throw new CheckoutError("Ese tamaño de box ya no está disponible.");
   }
+  if (size.stock <= 0) {
+    throw new CheckoutError(`No queda stock del tamaño "${size.name}".`);
+  }
 
   const resolved: {
     productId: string;
@@ -89,6 +92,7 @@ export async function createBoxOrderFromSelection(
     status,
     total,
     isBox: true,
+    boxSizeId: size.id,
     boxSizeName: size.name,
     giftRecipientName: gift.recipientName.trim(),
     giftMessage: gift.message.trim() || null,
@@ -112,6 +116,11 @@ export async function createBoxOrderFromSelection(
       .set({ stock: sql`${products.stock} - ${it.quantity}` })
       .where(eq(products.id, it.productId));
   }
+
+  await db
+    .update(boxSizes)
+    .set({ stock: sql`${boxSizes.stock} - 1` })
+    .where(eq(boxSizes.id, size.id));
 
   if (status === "pagado") {
     await notifyRidersOfNewOrder();

@@ -176,27 +176,45 @@ export function ArmarBoxClient({ sizes, products }: Props) {
         <section className="mt-5">
           <p className="text-sm font-bold text-zinc-800">1. Elegí el tamaño</p>
           <div className="mt-2 grid grid-cols-2 gap-3">
-            {sizes.map((size, i) => (
-              <button
-                key={size.id}
-                type="button"
-                onClick={() => setSizeId(size.id)}
-                className={`rounded-2xl p-4 text-left transition active:scale-95 ${
-                  sizeId === size.id
-                    ? `bg-gradient-to-br ${paletteFor(i)} text-white shadow-md shadow-black/10`
-                    : "border-2 border-zinc-100 bg-white text-zinc-800 hover:border-zinc-200"
-                }`}
-              >
-                <p className="text-base font-extrabold">{size.name}</p>
-                <p
-                  className={`mt-1 text-sm font-bold ${
-                    sizeId === size.id ? "text-white" : "text-purple-600"
+            {sizes.map((size, i) => {
+              const outOfStock = size.stock <= 0;
+              return (
+                <button
+                  key={size.id}
+                  type="button"
+                  onClick={() => !outOfStock && setSizeId(size.id)}
+                  disabled={outOfStock}
+                  className={`rounded-2xl p-3 text-left transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    sizeId === size.id
+                      ? `bg-gradient-to-br ${paletteFor(i)} text-white shadow-md shadow-black/10`
+                      : "border-2 border-zinc-100 bg-white text-zinc-800 hover:border-zinc-200"
                   }`}
                 >
-                  {formatPrice(size.price)}
-                </p>
-              </button>
-            ))}
+                  {size.imageUrl && (
+                    <div className="mb-2 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white/40">
+                      <Image
+                        src={size.imageUrl}
+                        alt={size.name}
+                        width={200}
+                        height={200}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                  )}
+                  <p className="text-base font-extrabold">{size.name}</p>
+                  <p
+                    className={`mt-1 text-sm font-bold ${
+                      sizeId === size.id ? "text-white" : "text-purple-600"
+                    }`}
+                  >
+                    {formatPrice(size.price)}
+                  </p>
+                  {outOfStock && (
+                    <p className="mt-0.5 text-xs font-semibold text-red-500">Sin stock</p>
+                  )}
+                </button>
+              );
+            })}
           </div>
           {sizes.length === 0 && (
             <p className="mt-2 text-sm text-zinc-500">

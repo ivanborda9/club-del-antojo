@@ -52,6 +52,7 @@ export const orders = sqliteTable("orders", {
   // de los productos elegidos — esos quedan en order_items igual, para que
   // el admin vea qué poner adentro, pero no se cobran por separado).
   isBox: integer("is_box", { mode: "boolean" }).notNull().default(false),
+  boxSizeId: text("box_size_id"),
   boxSizeName: text("box_size_name"),
   giftRecipientName: text("gift_recipient_name"),
   giftMessage: text("gift_message"),
@@ -66,6 +67,12 @@ export const boxSizes = sqliteTable("box_sizes", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   price: real("price").notNull(),
+  // Foto de la caja/bolsa (para que el comprador vea cómo es antes de
+  // elegir el tamaño), opcional.
+  imageUrl: text("image_url"),
+  // Cuántas cajas/bolsas de este tamaño quedan disponibles. Se descuenta 1
+  // por pedido (cada pedido de box es una sola caja).
+  stock: integer("stock").notNull().default(0),
   sortOrder: integer("sort_order").notNull().default(0),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),

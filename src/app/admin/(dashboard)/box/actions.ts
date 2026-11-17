@@ -13,27 +13,33 @@ export async function createBoxSizeAction(formData: FormData): Promise<void> {
   await createBoxSize({
     name,
     price,
+    imageUrl: String(formData.get("imageUrl") ?? "").trim() || null,
+    stock: Number(formData.get("stock")) || 0,
     sortOrder: Number(formData.get("sortOrder")) || 0,
     active: true,
   });
 
   revalidatePath("/admin/box");
   revalidatePath("/");
+  revalidatePath("/armar-box");
 }
 
-export async function toggleBoxSizeAction(formData: FormData): Promise<void> {
+export async function updateBoxSizeAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "");
   const price = Number(formData.get("price"));
   const sortOrder = Number(formData.get("sortOrder")) || 0;
   const active = formData.get("active") === "true";
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
+  const stock = Number(formData.get("stock")) || 0;
   if (!id) return;
 
-  const input: BoxSizeInput = { name, price, sortOrder, active };
+  const input: BoxSizeInput = { name, price, imageUrl, stock, sortOrder, active };
   await updateBoxSize(id, input);
 
   revalidatePath("/admin/box");
   revalidatePath("/");
+  revalidatePath("/armar-box");
 }
 
 export async function deleteBoxSizeAction(formData: FormData): Promise<void> {
@@ -42,4 +48,5 @@ export async function deleteBoxSizeAction(formData: FormData): Promise<void> {
   await deleteBoxSize(id);
   revalidatePath("/admin/box");
   revalidatePath("/");
+  revalidatePath("/armar-box");
 }
