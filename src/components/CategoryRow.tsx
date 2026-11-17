@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { formatPrice } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import type { Product } from "@/types";
@@ -61,9 +62,23 @@ function CompactProductCard({
   highlighted?: boolean;
 }) {
   const { items, addItem, setQuantity } = useCart();
-  const inCart = items.find((item) => item.product.id === product.id);
-  const outOfStock = product.stock <= 0;
-  const atMaxStock = !!inCart && inCart.quantity >= product.stock;
+  const variants = product.variants ?? [];
+  const hasVariants = variants.length > 0;
+  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
+    () => variants.find((v) => v.stock > 0)?.id ?? variants[0]?.id
+  );
+  const selectedVariant = variants.find((v) => v.id === selectedVariantId);
+
+  const inCart = items.find(
+    (item) => item.product.id === product.id && item.variantId === (hasVariants ? selectedVariantId : undefined)
+  );
+  const outOfStock = hasVariants ? variants.every((v) => v.stock <= 0) : product.stock <= 0;
+  const availableStock = hasVariants ? (selectedVariant?.stock ?? 0) : product.stock;
+  const atMaxStock = !!inCart && inCart.quantity >= availableStock;
+
+  function handleAdd() {
+    addItem(product, hasVariants && selectedVariant ? selectedVariant : undefined);
+  }
 
   return (
     <div
@@ -92,13 +107,28 @@ function CompactProductCard({
       </div>
       <p className="mt-1.5 line-clamp-1 text-xs font-medium text-zinc-800">{product.name}</p>
 
+      {hasVariants && !outOfStock && (
+        <select
+          value={selectedVariantId}
+          onChange={(e) => setSelectedVariantId(e.target.value)}
+          className="mt-1 h-6 rounded-md border border-zinc-200 bg-white px-1 text-[11px] text-zinc-700"
+        >
+          {variants.map((v) => (
+            <option key={v.id} value={v.id} disabled={v.stock <= 0}>
+              {v.name}
+              {v.stock <= 0 ? " (sin stock)" : ""}
+            </option>
+          ))}
+        </select>
+      )}
+
       <div className="mt-1 flex items-center justify-between gap-1">
         <span className="text-xs font-bold text-orange-600">{formatPrice(product.salePrice)}</span>
         {inCart ? (
           <div className="flex items-center gap-1 rounded-full bg-gradient-to-r from-orange-600 to-red-500 text-white">
             <button
               type="button"
-              onClick={() => setQuantity(product.id, inCart.quantity - 1)}
+              onClick={() => setQuantity(product.id, inCart.quantity - 1, inCart.variantId)}
               className="h-6 w-6 text-sm font-bold active:scale-95"
               aria-label="Quitar uno"
             >
@@ -107,7 +137,7 @@ function CompactProductCard({
             <span className="text-[11px] font-semibold">{inCart.quantity}</span>
             <button
               type="button"
-              onClick={() => addItem(product)}
+              onClick={handleAdd}
               disabled={atMaxStock}
               className="h-6 w-6 text-sm font-bold active:scale-95 disabled:opacity-40"
               aria-label="Agregar uno"
@@ -118,8 +148,8 @@ function CompactProductCard({
         ) : (
           <button
             type="button"
-            onClick={() => addItem(product)}
-            disabled={outOfStock}
+            onClick={handleAdd}
+            disabled={outOfStock || (hasVariants && availableStock <= 0)}
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-orange-600 to-red-500 text-sm font-bold text-white active:scale-95 transition disabled:cursor-not-allowed disabled:bg-none disabled:bg-zinc-200 disabled:text-zinc-400"
             aria-label="Agregar"
           >

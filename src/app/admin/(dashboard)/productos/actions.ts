@@ -6,10 +6,13 @@ import {
   clearCategorySchedule,
   clearProductUpsell,
   createProduct,
+  createProductVariant,
   deleteProduct,
+  deleteProductVariant,
   setCategorySchedule,
   setProductUpsell,
   updateProduct,
+  updateProductVariantStock,
   type ProductInput,
 } from "@/lib/db/queries";
 
@@ -139,4 +142,38 @@ export async function clearProductUpsellAction(formData: FormData): Promise<void
 
   await clearProductUpsell(triggerProductId);
   revalidatePath("/admin/productos");
+}
+
+export async function addProductVariantAction(formData: FormData): Promise<void> {
+  const productId = String(formData.get("productId") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const stock = Number(formData.get("stock"));
+  if (!productId || !name) return;
+  if (!Number.isInteger(stock) || stock < 0) return;
+
+  await createProductVariant(productId, name, stock, 0);
+  revalidatePath(`/admin/productos/${productId}`);
+  revalidatePath("/");
+}
+
+export async function updateProductVariantStockAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const productId = String(formData.get("productId") ?? "");
+  const stock = Number(formData.get("stock"));
+  if (!id || !productId) return;
+  if (!Number.isInteger(stock) || stock < 0) return;
+
+  await updateProductVariantStock(id, stock);
+  revalidatePath(`/admin/productos/${productId}`);
+  revalidatePath("/");
+}
+
+export async function deleteProductVariantAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const productId = String(formData.get("productId") ?? "");
+  if (!id || !productId) return;
+
+  await deleteProductVariant(id);
+  revalidatePath(`/admin/productos/${productId}`);
+  revalidatePath("/");
 }

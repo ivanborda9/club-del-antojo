@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { formatPrice } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import type { Product } from "@/types";
@@ -13,9 +14,23 @@ export function ProductCard({
   highlighted?: boolean;
 }) {
   const { items, addItem, setQuantity } = useCart();
-  const inCart = items.find((item) => item.product.id === product.id);
-  const outOfStock = product.stock <= 0;
-  const atMaxStock = !!inCart && inCart.quantity >= product.stock;
+  const variants = product.variants ?? [];
+  const hasVariants = variants.length > 0;
+  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
+    () => variants.find((v) => v.stock > 0)?.id ?? variants[0]?.id
+  );
+  const selectedVariant = variants.find((v) => v.id === selectedVariantId);
+
+  const inCart = items.find(
+    (item) => item.product.id === product.id && item.variantId === (hasVariants ? selectedVariantId : undefined)
+  );
+  const outOfStock = hasVariants ? variants.every((v) => v.stock <= 0) : product.stock <= 0;
+  const availableStock = hasVariants ? (selectedVariant?.stock ?? 0) : product.stock;
+  const atMaxStock = !!inCart && inCart.quantity >= availableStock;
+
+  function handleAdd() {
+    addItem(product, hasVariants && selectedVariant ? selectedVariant : undefined);
+  }
 
   return (
     <div
@@ -54,11 +69,26 @@ export function ProductCard({
         {formatPrice(product.salePrice)}
       </p>
 
+      {hasVariants && !outOfStock && (
+        <select
+          value={selectedVariantId}
+          onChange={(e) => setSelectedVariantId(e.target.value)}
+          className="mt-1.5 h-8 rounded-lg border border-zinc-200 bg-white px-2 text-xs text-zinc-700"
+        >
+          {variants.map((v) => (
+            <option key={v.id} value={v.id} disabled={v.stock <= 0}>
+              {v.name}
+              {v.stock <= 0 ? " (sin stock)" : ""}
+            </option>
+          ))}
+        </select>
+      )}
+
       {inCart ? (
         <div className="mt-2 flex items-center justify-between rounded-full bg-gradient-to-r from-orange-600 to-red-500 text-white shadow-sm">
           <button
             type="button"
-            onClick={() => setQuantity(product.id, inCart.quantity - 1)}
+            onClick={() => setQuantity(product.id, inCart.quantity - 1, inCart.variantId)}
             className="h-9 w-9 text-lg font-bold active:scale-95"
             aria-label="Quitar uno"
           >
@@ -67,7 +97,7 @@ export function ProductCard({
           <span className="text-sm font-semibold">{inCart.quantity}</span>
           <button
             type="button"
-            onClick={() => addItem(product)}
+            onClick={handleAdd}
             disabled={atMaxStock}
             className="h-9 w-9 text-lg font-bold active:scale-95 disabled:opacity-40"
             aria-label="Agregar uno"
@@ -78,8 +108,8 @@ export function ProductCard({
       ) : (
         <button
           type="button"
-          onClick={() => addItem(product)}
-          disabled={outOfStock}
+          onClick={handleAdd}
+          disabled={outOfStock || (hasVariants && availableStock <= 0)}
           className="mt-2 h-9 rounded-full bg-gradient-to-r from-orange-600 to-red-500 text-sm font-bold text-white shadow-sm active:scale-95 transition disabled:cursor-not-allowed disabled:bg-none disabled:bg-zinc-200 disabled:text-zinc-400 disabled:shadow-none"
         >
           {outOfStock ? "Sin stock" : "Agregar"}

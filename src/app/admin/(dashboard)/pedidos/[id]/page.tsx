@@ -94,6 +94,9 @@ export default async function OrderDetailPage(
             <li key={item.id} className="flex justify-between">
               <span>
                 {item.quantity}x {item.productName}
+                {item.variantName && (
+                  <span className="text-zinc-400"> · {item.variantName}</span>
+                )}
               </span>
               {!order.isBox && <span>{formatPrice(item.unitPrice * item.quantity)}</span>}
             </li>

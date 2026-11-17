@@ -9,15 +9,22 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { CartItem, Product } from "@/types";
+import type { CartItem, Product, ProductVariant } from "@/types";
 
 const STORAGE_KEY = "club-del-antojo:cart";
 
+// Stock disponible para una línea del carrito: el de la variedad elegida
+// si el producto tiene variantes, si no el del producto.
+function stockFor(product: Product, variantId?: string): number {
+  if (!variantId) return product.stock;
+  return product.variants?.find((v) => v.id === variantId)?.stock ?? 0;
+}
+
 type CartContextValue = {
   items: CartItem[];
-  addItem: (product: Product) => void;
-  removeItem: (productId: string) => void;
-  setQuantity: (productId: string, quantity: number) => void;
+  addItem: (product: Product, variant?: ProductVariant) => void;
+  removeItem: (productId: string, variantId?: string) => void;
+  setQuantity: (productId: string, quantity: number, variantId?: string) => void;
   clear: () => void;
   totalItems: number;
   totalPrice: number;
@@ -51,34 +58,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, hydrated]);
 
-  const addItem = useCallback((product: Product) => {
+  const addItem = useCallback((product: Product, variant?: ProductVariant) => {
     setItems((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
+      const existing = prev.find(
+        (item) => item.product.id === product.id && item.variantId === variant?.id
+      );
+      const available = stockFor(product, variant?.id);
       if (existing) {
-        if (existing.quantity >= product.stock) return prev;
+        if (existing.quantity >= available) return prev;
         return prev.map((item) =>
-          item.product.id === product.id
+          item.product.id === product.id && item.variantId === variant?.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      if (product.stock <= 0) return prev;
-      return [...prev, { product, quantity: 1 }];
+      if (available <= 0) return prev;
+      return [...prev, { product, quantity: 1, variantId: variant?.id, variantName: variant?.name }];
     });
   }, []);
 
-  const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((item) => item.product.id !== productId));
+  const removeItem = useCallback((productId: string, variantId?: string) => {
+    setItems((prev) =>
+      prev.filter((item) => !(item.product.id === productId && item.variantId === variantId))
+    );
   }, []);
 
-  const setQuantity = useCallback((productId: string, quantity: number) => {
+  const setQuantity = useCallback((productId: string, quantity: number, variantId?: string) => {
     setItems((prev) => {
       if (quantity <= 0) {
-        return prev.filter((item) => item.product.id !== productId);
+        return prev.filter((item) => !(item.product.id === productId && item.variantId === variantId));
       }
       return prev.map((item) =>
-        item.product.id === productId
-          ? { ...item, quantity: Math.min(quantity, item.product.stock) }
+        item.product.id === productId && item.variantId === variantId
+          ? { ...item, quantity: Math.min(quantity, stockFor(item.product, variantId)) }
           : item
       );
     });

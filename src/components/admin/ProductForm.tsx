@@ -4,8 +4,9 @@ import Image from "next/image";
 import { useActionState, useMemo, useRef, useState } from "react";
 import { marginPercent } from "@/lib/margin";
 import type { ProductFormState } from "@/app/admin/(dashboard)/productos/actions";
-import type { ProductRow } from "@/lib/db/schema";
+import type { ProductRow, ProductVariantRow } from "@/lib/db/schema";
 import { ProductUpsellControl } from "./ProductUpsellControl";
+import { ProductVariantsControl } from "./ProductVariantsControl";
 
 type Props = {
   action: (state: ProductFormState, formData: FormData) => Promise<ProductFormState>;
@@ -14,6 +15,7 @@ type Props = {
   parentCategories: string[];
   allProducts?: ProductRow[];
   upsell?: { offerProductId: string; offerPrice: number; offerProductName: string } | null;
+  variants?: ProductVariantRow[];
 };
 
 const initialState: ProductFormState = { error: null };
@@ -25,6 +27,7 @@ export function ProductForm({
   parentCategories,
   allProducts,
   upsell,
+  variants,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [costPrice, setCostPrice] = useState(product?.costPrice ?? 0);
@@ -290,6 +293,12 @@ export function ProductForm({
         {pending ? "Guardando…" : uploading ? "Esperando imagen…" : "Guardar producto"}
       </button>
     </form>
+
+    {product && (
+      <div className="mt-4 max-w-lg">
+        <ProductVariantsControl productId={product.id} variants={variants ?? []} />
+      </div>
+    )}
 
     {product && allProducts && (
       <div className="mt-4 max-w-lg">

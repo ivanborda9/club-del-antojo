@@ -8,6 +8,7 @@ import {
   orderItems,
   orders,
   productUpsells,
+  productVariants,
   products,
   pushSubscriptions,
   riders,
@@ -65,7 +66,7 @@ export async function getProductById(id: string): Promise<ProductRow | undefined
 // producto ni de la categoría (la pestaña desaparece sola porque se arma
 // a partir de esta misma lista, ya filtrada).
 export async function getStorefrontProducts() {
-  const [rows, restrictedCategories] = await Promise.all([
+  const [rows, restrictedCategories, variantRows] = await Promise.all([
     db
       .select({
         id: products.id,
@@ -84,11 +85,20 @@ export async function getStorefrontProducts() {
       .where(eq(products.active, true))
       .orderBy(asc(products.category), asc(products.name)),
     safeQuery(() => getAllCategorySchedules(), []),
+    // Variantes (ej. sabores de una pizza en un combo): si falta la
+    // migración, los productos simplemente no muestran selector.
+    safeQuery(() => db.select().from(productVariants).orderBy(asc(productVariants.sortOrder)), []),
   ]);
 
   const categoryScheduleByName = new Map(
     restrictedCategories.map((c) => [c.category, c])
   );
+  const variantsByProductId = new Map<string, { id: string; name: string; stock: number }[]>();
+  for (const v of variantRows) {
+    const list = variantsByProductId.get(v.productId) ?? [];
+    list.push({ id: v.id, name: v.name, stock: v.stock });
+    variantsByProductId.set(v.productId, list);
+  }
 
   return rows
     .filter((p) => isWithinSchedule(p.scheduleStart, p.scheduleEnd))
@@ -97,17 +107,21 @@ export async function getStorefrontProducts() {
       if (!categorySchedule) return true;
       return isWithinSchedule(categorySchedule.scheduleStart, categorySchedule.scheduleEnd);
     })
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      category: p.category,
-      parentCategory: p.parentCategory,
-      emoji: p.emoji,
-      imageUrl: p.imageUrl,
-      description: p.description,
-      salePrice: p.salePrice,
-      stock: p.stock,
-    }));
+    .map((p) => {
+      const variants = variantsByProductId.get(p.id);
+      return {
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        parentCategory: p.parentCategory,
+        emoji: p.emoji,
+        imageUrl: p.imageUrl,
+        description: p.description,
+        salePrice: p.salePrice,
+        stock: p.stock,
+        ...(variants && variants.length > 0 ? { variants } : {}),
+      };
+    });
 }
 
 // Productos que se pueden elegir para "Armá tu Box" (subconjunto de los
@@ -243,6 +257,44 @@ export async function updateProduct(id: string, input: ProductInput): Promise<vo
 
 export async function deleteProduct(id: string): Promise<void> {
   await db.delete(products).where(eq(products.id, id));
+}
+
+// ---------- Variantes de producto ----------
+
+// Variedades de un producto (ej. sabores de pizza), para administrarlas
+// desde la página de editar producto. Envuelto en safeQuery: si falta la
+// migración, la página no se tiene que romper por esto.
+export async function getVariantsForProduct(productId: string) {
+  return safeQuery(async () => {
+    const rows = await db
+      .select()
+      .from(productVariants)
+      .where(eq(productVariants.productId, productId));
+    return rows.sort((a, b) => a.sortOrder - b.sortOrder);
+  }, []);
+}
+
+export async function createProductVariant(
+  productId: string,
+  name: string,
+  stock: number,
+  sortOrder: number
+): Promise<string> {
+  const id = randomUUID();
+  await db.insert(productVariants).values({ id, productId, name, stock, sortOrder });
+  return id;
+}
+
+export async function updateProductVariantStock(id: string, stock: number): Promise<void> {
+  await db.update(productVariants).set({ stock }).where(eq(productVariants.id, id));
+}
+
+export async function deleteProductVariant(id: string): Promise<void> {
+  await db.delete(productVariants).where(eq(productVariants.id, id));
+}
+
+export async function getVariantById(id: string) {
+  return (await db.select().from(productVariants).where(eq(productVariants.id, id)).limit(1))[0];
 }
 
 // ---------- Ofertas antes de pagar (upsell) ----------
@@ -410,10 +462,26 @@ export async function getNewOrdersCount(): Promise<number> {
 export async function restoreStockForOrder(orderId: string): Promise<void> {
   const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
   for (const item of items) {
+    if (item.variantId) {
+      await db
+        .update(productVariants)
+        .set({ stock: sql`${productVariants.stock} + ${item.quantity}` })
+        .where(eq(productVariants.id, item.variantId));
+    } else {
+      await db
+        .update(products)
+        .set({ stock: sql`${products.stock} + ${item.quantity}` })
+        .where(eq(products.id, item.productId));
+    }
+  }
+
+  const orderRows = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+  const order = orderRows[0];
+  if (order?.isBox && order.boxSizeId) {
     await db
-      .update(products)
-      .set({ stock: sql`${products.stock} + ${item.quantity}` })
-      .where(eq(products.id, item.productId));
+      .update(boxSizes)
+      .set({ stock: sql`${boxSizes.stock} + 1` })
+      .where(eq(boxSizes.id, order.boxSizeId));
   }
 }
 

@@ -85,9 +85,10 @@ export default function CheckoutPage() {
     setLoading(true);
 
     const payload = {
-      items: items.map(({ product, quantity }) => ({
+      items: items.map(({ product, quantity, variantId }) => ({
         productId: product.id,
         quantity,
+        variantId,
       })),
       buyer: { name, phone, address, notes },
     };
@@ -126,8 +127,8 @@ export default function CheckoutPage() {
 
       const summary = order.items
         .map(
-          (it: { name: string; quantity: number; unitPrice: number }) =>
-            `• ${it.quantity}x ${it.name} — ${formatPrice(it.unitPrice * it.quantity)}`
+          (it: { name: string; variantName?: string; quantity: number; unitPrice: number }) =>
+            `• ${it.quantity}x ${it.name}${it.variantName ? ` (${it.variantName})` : ""} — ${formatPrice(it.unitPrice * it.quantity)}`
         )
         .join("\n");
 
@@ -237,9 +238,12 @@ export default function CheckoutPage() {
       <div className="mt-4 rounded-2xl border border-orange-100 bg-white p-4">
         <p className="text-sm font-semibold text-zinc-800">Tu pedido</p>
         <ul className="mt-2 space-y-1 text-sm text-zinc-600">
-          {items.map(({ product, quantity }) => (
-            <li key={product.id} className="flex justify-between">
-              <span>{quantity}x {product.name}</span>
+          {items.map(({ product, quantity, variantId, variantName }) => (
+            <li key={`${product.id}-${variantId ?? ""}`} className="flex justify-between">
+              <span>
+                {quantity}x {product.name}
+                {variantName && <span className="text-zinc-400"> · {variantName}</span>}
+              </span>
               <span>{formatPrice(product.salePrice * quantity)}</span>
             </li>
           ))}

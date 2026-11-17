@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       body: {
         items: order.items.map((it) => ({
           id: it.productId,
-          title: it.name,
+          title: it.variantName ? `${it.name} (${it.variantName})` : it.name,
           quantity: it.quantity,
           unit_price: it.unitPrice,
           currency_id: siteConfig.currency,

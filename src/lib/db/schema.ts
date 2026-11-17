@@ -88,6 +88,25 @@ export const orderItems = sqliteTable("order_items", {
   unitPrice: real("unit_price").notNull(),
   unitCost: real("unit_cost").notNull(),
   quantity: integer("quantity").notNull(),
+  // Variedad elegida, para productos con variantes (ej. "Combo pizza
+  // especial" → qué sabor). Null si el producto no tiene variantes.
+  variantId: text("variant_id"),
+  variantName: text("variant_name"),
+});
+
+// Variedades de un producto entre las que el cliente tiene que elegir una
+// (ej. "Combo 1 muzza + 1 especial" → sabor de la especial), cada una con
+// su propio stock. Un producto sin filas acá se vende como siempre, sin
+// selector de variedad.
+export const productVariants = sqliteTable("product_variants", {
+  id: text("id").primaryKey(),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  stock: integer("stock").notNull().default(0),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
 export const riders = sqliteTable("riders", {
@@ -189,3 +208,5 @@ export type ProductUpsellRow = typeof productUpsells.$inferSelect;
 export type NewProductUpsellRow = typeof productUpsells.$inferInsert;
 export type BoxSizeRow = typeof boxSizes.$inferSelect;
 export type NewBoxSizeRow = typeof boxSizes.$inferInsert;
+export type ProductVariantRow = typeof productVariants.$inferSelect;
+export type NewProductVariantRow = typeof productVariants.$inferInsert;

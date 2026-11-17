@@ -1,13 +1,13 @@
 import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { boxSizes, orderItems, orders, products } from "@/lib/db/schema";
-import { getUpsellOffersForProductIds } from "@/lib/db/queries";
+import { orderItems, orders, productVariants, products } from "@/lib/db/schema";
+import { getUpsellOffersForProductIds, getVariantsForProduct, restoreStockForOrder } from "@/lib/db/queries";
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import { isWithinSchedule } from "@/lib/schedule";
 import { notifyRidersOfNewOrder } from "@/lib/push";
 
-export type CheckoutItemInput = { productId: string; quantity: number };
+export type CheckoutItemInput = { productId: string; quantity: number; variantId?: string };
 export type Buyer = { name: string; phone: string; address: string; notes?: string };
 
 export class CheckoutError extends Error {}
@@ -15,7 +15,13 @@ export class CheckoutError extends Error {}
 export type CreatedOrder = {
   orderId: string;
   total: number;
-  items: { productId: string; name: string; unitPrice: number; quantity: number }[];
+  items: {
+    productId: string;
+    name: string;
+    variantName?: string;
+    unitPrice: number;
+    quantity: number;
+  }[];
 };
 
 // Recalcula todo desde la base (nunca confía en precios/stock que mande el
@@ -30,12 +36,14 @@ export async function createOrderFromCart(
   const resolved: {
     productId: string;
     name: string;
+    variantId?: string;
+    variantName?: string;
     unitPrice: number;
     unitCost: number;
     quantity: number;
   }[] = [];
 
-  for (const { productId, quantity } of itemsInput) {
+  for (const { productId, quantity, variantId } of itemsInput) {
     if (!Number.isInteger(quantity) || quantity <= 0) {
       throw new CheckoutError("Cantidad inválida en el carrito.");
     }
@@ -47,14 +55,35 @@ export async function createOrderFromCart(
     if (!isWithinSchedule(product.scheduleStart, product.scheduleEnd)) {
       throw new CheckoutError(`"${product.name}" no está disponible en este horario.`);
     }
-    if (product.stock < quantity) {
+
+    // Productos con variantes (ej. sabor de pizza en un combo): el stock
+    // que manda es el de la variedad elegida, no el del producto.
+    const variants = await getVariantsForProduct(productId);
+    let variant: { id: string; name: string; stock: number } | undefined;
+    if (variants.length > 0) {
+      if (!variantId) {
+        throw new CheckoutError(`Elegí una variedad para "${product.name}".`);
+      }
+      variant = variants.find((v) => v.id === variantId);
+      if (!variant) {
+        throw new CheckoutError(`La variedad elegida para "${product.name}" ya no existe.`);
+      }
+      if (variant.stock < quantity) {
+        throw new CheckoutError(
+          `No hay suficiente stock de "${product.name} - ${variant.name}" (quedan ${variant.stock}).`
+        );
+      }
+    } else if (product.stock < quantity) {
       throw new CheckoutError(
         `No hay suficiente stock de "${product.name}" (quedan ${product.stock}).`
       );
     }
+
     resolved.push({
       productId: product.id,
       name: product.name,
+      variantId: variant?.id,
+      variantName: variant?.name,
       unitPrice: product.salePrice,
       unitCost: product.costPrice,
       quantity,
@@ -129,15 +158,26 @@ export async function createOrderFromCart(
       unitPrice: it.unitPrice,
       unitCost: it.unitCost,
       quantity: it.quantity,
+      variantId: it.variantId ?? null,
+      variantName: it.variantName ?? null,
     }))
   );
 
-  // Reservamos el stock ya en este momento (se restaura si el pedido se cancela).
+  // Reservamos el stock ya en este momento (se restaura si el pedido se
+  // cancela): el de la variedad elegida si el producto tiene variantes, si
+  // no el del producto.
   for (const it of resolved) {
-    await db
-      .update(products)
-      .set({ stock: sql`${products.stock} - ${it.quantity}` })
-      .where(eq(products.id, it.productId));
+    if (it.variantId) {
+      await db
+        .update(productVariants)
+        .set({ stock: sql`${productVariants.stock} - ${it.quantity}` })
+        .where(eq(productVariants.id, it.variantId));
+    } else {
+      await db
+        .update(products)
+        .set({ stock: sql`${products.stock} - ${it.quantity}` })
+        .where(eq(products.id, it.productId));
+    }
   }
 
   if (status === "pagado") {
@@ -150,6 +190,7 @@ export async function createOrderFromCart(
     items: resolved.map((it) => ({
       productId: it.productId,
       name: it.name,
+      variantName: it.variantName,
       unitPrice: it.unitPrice,
       quantity: it.quantity,
     })),
@@ -157,23 +198,7 @@ export async function createOrderFromCart(
 }
 
 export async function cancelOrderAndRestoreStock(orderId: string): Promise<void> {
-  const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
-  for (const item of items) {
-    await db
-      .update(products)
-      .set({ stock: sql`${products.stock} + ${item.quantity}` })
-      .where(eq(products.id, item.productId));
-  }
-
-  const orderRows = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
-  const order = orderRows[0];
-  if (order?.isBox && order.boxSizeId) {
-    await db
-      .update(boxSizes)
-      .set({ stock: sql`${boxSizes.stock} + 1` })
-      .where(eq(boxSizes.id, order.boxSizeId));
-  }
-
+  await restoreStockForOrder(orderId);
   await db
     .update(orders)
     .set({ status: "cancelado", updatedAt: sql`(current_timestamp)` })

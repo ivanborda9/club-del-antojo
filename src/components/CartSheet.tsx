@@ -38,8 +38,8 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
         ) : (
           <>
             <div className="mt-3 flex-1 space-y-3 overflow-y-auto">
-              {items.map(({ product, quantity }) => (
-                <div key={product.id} className="flex items-center gap-3">
+              {items.map(({ product, quantity, variantId, variantName }) => (
+                <div key={`${product.id}-${variantId ?? ""}`} className="flex items-center gap-3">
                   <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-2xl">
                     {product.imageUrl ? (
                       <Image
@@ -56,6 +56,9 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-zinc-800">
                       {product.name}
+                      {variantName && (
+                        <span className="font-normal text-zinc-500"> · {variantName}</span>
+                      )}
                     </p>
                     <p className="text-sm text-orange-600">
                       {formatPrice(product.salePrice * quantity)}
@@ -64,7 +67,7 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => setQuantity(product.id, quantity - 1)}
+                      onClick={() => setQuantity(product.id, quantity - 1, variantId)}
                       className="h-9 w-9 shrink-0 rounded-full border border-orange-200 text-sm font-bold text-orange-600 active:scale-95"
                       aria-label="Quitar uno"
                     >
@@ -75,7 +78,7 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                     </span>
                     <button
                       type="button"
-                      onClick={() => setQuantity(product.id, quantity + 1)}
+                      onClick={() => setQuantity(product.id, quantity + 1, variantId)}
                       className="h-9 w-9 shrink-0 rounded-full border border-orange-200 text-sm font-bold text-orange-600 active:scale-95"
                       aria-label="Agregar uno"
                     >
@@ -84,7 +87,7 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeItem(product.id)}
+                    onClick={() => removeItem(product.id, variantId)}
                     className="flex h-9 w-9 shrink-0 items-center justify-center text-base text-zinc-400"
                     aria-label={`Quitar ${product.name} del carrito`}
                   >
