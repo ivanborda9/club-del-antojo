@@ -21,6 +21,11 @@ export const products = sqliteTable("products", {
   // defecto: hay que habilitarlo producto por producto, no todo lo
   // publicado tiene que poder entrar en un box.
   includeInBox: integer("include_in_box", { mode: "boolean" }).notNull().default(false),
+  // Si se puede ofrecer con descuento en el cartel de "agregá algo más"
+  // del checkout (ej. bebidas, cuando el carrito tiene un producto de
+  // "Salvá la Comida" y todavía no tiene ninguna bebida). Configurable
+  // desde /admin/promos.
+  cartPromoEligible: integer("cart_promo_eligible", { mode: "boolean" }).notNull().default(false),
   // Horario de disponibilidad ("HH:MM", 24hs). Si ambos son null, el
   // producto está disponible todo el día (según "active"). Soporta rangos
   // que cruzan la medianoche, ej. 22:00–06:00.

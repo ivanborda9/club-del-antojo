@@ -15,6 +15,14 @@ type UpsellOffer = {
   offerProduct: Product;
 };
 
+type CartPromo = {
+  triggerCategory: string;
+  excludeCategory: string;
+  discountPercent: number;
+  active: boolean;
+  eligibleProductIds: string[];
+};
+
 export default function CheckoutPage() {
   const { items, totalPrice, addItem, clear } = useCart();
   const [name, setName] = useState("");
@@ -27,6 +35,7 @@ export default function CheckoutPage() {
   const [transferSent, setTransferSent] = useState(false);
   const [cashConfirmed, setCashConfirmed] = useState(false);
   const [upsellOffers, setUpsellOffers] = useState<UpsellOffer[]>([]);
+  const [cartPromo, setCartPromo] = useState<CartPromo | null>(null);
 
   const cartProductIds = items.map((item) => item.product.id).sort().join(",");
 
@@ -50,6 +59,51 @@ export default function CheckoutPage() {
     };
   }, [cartProductIds]);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/cart-promo")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setCartPromo(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCartPromo(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Mismo criterio que el servidor para el descuento: alcanza con que haya
+  // algo de la categoría gatillo en el carrito. La categoría "excluida" acá
+  // solo decide si mostramos el cartel (no tiene sentido invitar a agregar
+  // una bebida si ya agregó una) — una vez que agrega una elegible, el
+  // cartel se oculta solo y pasa a verse la línea de descuento.
+  const hasCartPromoTrigger = Boolean(
+    cartPromo?.active &&
+      items.some(
+        (it) =>
+          it.product.category === cartPromo.triggerCategory ||
+          it.product.parentCategory === cartPromo.triggerCategory
+      )
+  );
+  const hasCartPromoExcludeItem = Boolean(
+    cartPromo &&
+      items.some(
+        (it) =>
+          it.product.category === cartPromo.excludeCategory ||
+          it.product.parentCategory === cartPromo.excludeCategory
+      )
+  );
+  const showCartPromoBanner = hasCartPromoTrigger && !hasCartPromoExcludeItem;
+  const cartPromoDiscount =
+    hasCartPromoTrigger && cartPromo
+      ? items.reduce((sum, it) => {
+          if (!cartPromo.eligibleProductIds.includes(it.product.id)) return sum;
+          return sum + Math.round(it.product.salePrice * it.quantity * (cartPromo.discountPercent / 100));
+        }, 0)
+      : 0;
+
   // Línea de descuento a mostrar: para cada oferta aplicable, si ya se
   // cumplió (producto ofrecido en el carrito, y si es "2x1" del mismo
   // producto con 2+ unidades) restamos una unidad al precio especial. El
@@ -68,7 +122,7 @@ export default function CheckoutPage() {
   const pendingUpsells = upsellOffers.filter(
     (offer) => !appliedUpsells.some((a) => a.offerProductId === offer.offerProductId)
   );
-  const subtotalAfterUpsells = totalPrice - upsellDiscount;
+  const subtotalAfterUpsells = totalPrice - upsellDiscount - cartPromoDiscount;
   // Mismo redondeo que el servidor (por unidad, no sobre el total) — acá
   // alcanza con la aproximación sobre el subtotal para la vidriera, el
   // cobro real siempre lo recalcula el servidor.
@@ -254,6 +308,12 @@ export default function CheckoutPage() {
             <span>−{formatPrice(upsellDiscount)}</span>
           </div>
         )}
+        {cartPromoDiscount > 0 && (
+          <div className="mt-1 flex justify-between text-sm text-emerald-600">
+            <span>🥤 Descuento por bebida</span>
+            <span>−{formatPrice(cartPromoDiscount)}</span>
+          </div>
+        )}
         {cashDiscount > 0 && (
           <div className="mt-1 flex justify-between text-sm text-emerald-600">
             <span>💵 5% off por pagar en efectivo</span>
@@ -265,6 +325,16 @@ export default function CheckoutPage() {
           <span>{formatPrice(displayTotal)}</span>
         </div>
       </div>
+
+      {showCartPromoBanner && cartPromo && (
+        <Link
+          href="/"
+          className="mt-3 flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800"
+        >
+          <span className="text-base leading-none">🥤</span>
+          <span>¡Agregá una bebida y llevate un {cartPromo.discountPercent}% de descuento!</span>
+        </Link>
+      )}
 
       {pendingUpsells.map((offer) => (
         <div

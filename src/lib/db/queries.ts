@@ -744,6 +744,103 @@ export async function setBannerIntervalSeconds(seconds: number): Promise<void> {
     .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
 }
 
+// ---------- Promo "agregá algo con descuento" del checkout ----------
+
+// Cartel no invasivo que aparece en el checkout ofreciendo un descuento en
+// ciertos productos (ej. bebidas) cuando el carrito tiene algo de una
+// categoría gatillo (ej. "Salvá la Comida") y todavía no tiene nada de una
+// categoría excluida (ej. "Bebidas"). Totalmente configurable desde
+// /admin/promos — sin categorías cargadas, queda inactiva.
+const CART_PROMO_SETTING_KEYS = {
+  triggerCategory: "cart_promo_trigger_category",
+  excludeCategory: "cart_promo_exclude_category",
+  discountPercent: "cart_promo_discount_percent",
+  active: "cart_promo_active",
+} as const;
+
+export type CartPromoSettings = {
+  triggerCategory: string;
+  excludeCategory: string;
+  discountPercent: number;
+  active: boolean;
+};
+
+const DEFAULT_CART_PROMO_SETTINGS: CartPromoSettings = {
+  triggerCategory: "",
+  excludeCategory: "",
+  discountPercent: 10,
+  active: false,
+};
+
+// Envuelto en safeQuery: si falta la migración de "site_settings", el
+// checkout sigue funcionando sin esta promo en vez de romperse.
+export async function getCartPromoSettings(): Promise<CartPromoSettings> {
+  return safeQuery(async () => {
+    const rows = await db
+      .select()
+      .from(siteSettings)
+      .where(
+        inArray(siteSettings.key, [
+          CART_PROMO_SETTING_KEYS.triggerCategory,
+          CART_PROMO_SETTING_KEYS.excludeCategory,
+          CART_PROMO_SETTING_KEYS.discountPercent,
+          CART_PROMO_SETTING_KEYS.active,
+        ])
+      );
+    const byKey = new Map(rows.map((r) => [r.key, r.value]));
+    const triggerCategory = byKey.get(CART_PROMO_SETTING_KEYS.triggerCategory) ?? "";
+    const excludeCategory = byKey.get(CART_PROMO_SETTING_KEYS.excludeCategory) ?? "";
+    const discountPercent = Number(byKey.get(CART_PROMO_SETTING_KEYS.discountPercent));
+    return {
+      triggerCategory,
+      excludeCategory,
+      discountPercent: Number.isFinite(discountPercent) ? discountPercent : DEFAULT_CART_PROMO_SETTINGS.discountPercent,
+      // Inactiva si falta configurar alguna de las dos categorías, aunque
+      // el admin haya tildado "activa".
+      active: byKey.get(CART_PROMO_SETTING_KEYS.active) === "true" && Boolean(triggerCategory) && Boolean(excludeCategory),
+    };
+  }, DEFAULT_CART_PROMO_SETTINGS);
+}
+
+export async function setCartPromoSettings(settings: CartPromoSettings): Promise<void> {
+  const entries: [string, string][] = [
+    [CART_PROMO_SETTING_KEYS.triggerCategory, settings.triggerCategory],
+    [CART_PROMO_SETTING_KEYS.excludeCategory, settings.excludeCategory],
+    [CART_PROMO_SETTING_KEYS.discountPercent, String(settings.discountPercent)],
+    [CART_PROMO_SETTING_KEYS.active, settings.active ? "true" : "false"],
+  ];
+  for (const [key, value] of entries) {
+    await db
+      .insert(siteSettings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
+  }
+}
+
+// Productos marcados para ofrecerse con descuento en esta promo. Envuelto
+// en safeQuery: si falta la migración de "cart_promo_eligible", el
+// checkout sigue funcionando sin ofertas en vez de romperse.
+export async function getCartPromoEligibleProducts() {
+  return safeQuery(async () => {
+    return db
+      .select({ id: products.id, name: products.name, salePrice: products.salePrice })
+      .from(products)
+      .where(eq(products.cartPromoEligible, true));
+  }, []);
+}
+
+// Reemplazo completo del set de productos elegibles (para el checklist del
+// admin, que manda la lista entera marcada).
+export async function setCartPromoEligibleProducts(productIds: string[]): Promise<void> {
+  await db.update(products).set({ cartPromoEligible: false });
+  if (productIds.length > 0) {
+    await db
+      .update(products)
+      .set({ cartPromoEligible: true })
+      .where(inArray(products.id, productIds));
+  }
+}
+
 // ---------- Reportes ----------
 
 export async function getSalesReport(fromISO: string, toISO: string) {

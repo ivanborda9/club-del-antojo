@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `cart_promo_eligible` integer DEFAULT false NOT NULL;

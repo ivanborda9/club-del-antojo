@@ -2,7 +2,13 @@ import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { orderItems, orders, productVariants, products } from "@/lib/db/schema";
-import { getUpsellOffersForProductIds, getVariantsForProduct, restoreStockForOrder } from "@/lib/db/queries";
+import {
+  getCartPromoEligibleProducts,
+  getCartPromoSettings,
+  getUpsellOffersForProductIds,
+  getVariantsForProduct,
+  restoreStockForOrder,
+} from "@/lib/db/queries";
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import { isWithinSchedule } from "@/lib/schedule";
 import { notifyRidersOfNewOrder } from "@/lib/push";
@@ -36,6 +42,8 @@ export async function createOrderFromCart(
   const resolved: {
     productId: string;
     name: string;
+    category: string;
+    parentCategory: string | null;
     variantId?: string;
     variantName?: string;
     unitPrice: number;
@@ -82,12 +90,37 @@ export async function createOrderFromCart(
     resolved.push({
       productId: product.id,
       name: product.name,
+      category: product.category,
+      parentCategory: product.parentCategory,
       variantId: variant?.id,
       variantName: variant?.name,
       unitPrice: product.salePrice,
       unitCost: product.costPrice,
       quantity,
     });
+  }
+
+  // Promo "agregá algo con descuento" (ej. bebida con X% off si el carrito
+  // tiene algo de "Salvá la Comida"): configurable desde /admin/promos. Se
+  // recalcula acá, nunca se confía en nada que mande el cliente. La
+  // categoría "excluida" de la configuración es solo para el cartel del
+  // checkout (no mostrarlo si ya hay una bebida) — acá el descuento se
+  // aplica igual a cualquier producto elegible que esté en el carrito,
+  // sea el que agregaron respondiendo al cartel o no.
+  const cartPromo = await getCartPromoSettings();
+  if (cartPromo.active) {
+    const hasTrigger = resolved.some(
+      (it) => it.category === cartPromo.triggerCategory || it.parentCategory === cartPromo.triggerCategory
+    );
+    if (hasTrigger) {
+      const eligibleProducts = await getCartPromoEligibleProducts();
+      const eligibleIds = new Set(eligibleProducts.map((p) => p.id));
+      for (const it of resolved) {
+        if (eligibleIds.has(it.productId)) {
+          it.unitPrice = Math.round(it.unitPrice * (1 - cartPromo.discountPercent / 100));
+        }
+      }
+    }
   }
 
   // Ofertas "antes de pagar" (ej. llevás alcohol → hielo con descuento, o
