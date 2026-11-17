@@ -1,5 +1,7 @@
-import { getAllProducts, getCartPromoSettings } from "@/lib/db/queries";
+import Link from "next/link";
+import { getAllProducts, getAllUpsells, getCartPromoSettings } from "@/lib/db/queries";
 import { formatPrice } from "@/config/site";
+import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import { setCartPromoEligibleProductsAction, setCartPromoSettingsAction } from "./actions";
 
 const NO_PARENT = "__sin_categoria__";
@@ -16,7 +18,11 @@ function groupBy<T>(items: T[], keyOf: (item: T) => string): [string, T[]][] {
 }
 
 export default async function AdminPromosPage() {
-  const [settings, productList] = await Promise.all([getCartPromoSettings(), getAllProducts()]);
+  const [settings, productList, upsells] = await Promise.all([
+    getCartPromoSettings(),
+    getAllProducts(),
+    getAllUpsells(),
+  ]);
 
   const categoryOptions = Array.from(
     new Set(
@@ -25,6 +31,7 @@ export default async function AdminPromosPage() {
   ).sort();
 
   const byCategory = groupBy(productList, (p) => p.category || NO_PARENT);
+  const eligibleCount = productList.filter((p) => p.cartPromoEligible).length;
 
   return (
     <div className="max-w-2xl">
@@ -34,6 +41,48 @@ export default async function AdminPromosPage() {
         productos cuando el carrito tiene algo de una categoría y todavía nada de otra.
         Ej: &quot;Salvá la Comida&quot; → ofrecer bebida con descuento.
       </p>
+
+      <div className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
+        <p className="text-sm font-semibold text-zinc-800">Promos activas ahora</p>
+
+        <div
+          className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm ${
+            settings.active ? "bg-emerald-50 text-emerald-800" : "bg-zinc-50 text-zinc-500"
+          }`}
+        >
+          <span>
+            🥤 {settings.active ? "Activa" : "Inactiva"}
+            {settings.active &&
+              ` — "${settings.triggerCategory}" sin "${settings.excludeCategory}" → ${settings.discountPercent}% off (${eligibleCount} ${eligibleCount === 1 ? "producto" : "productos"})`}
+          </span>
+        </div>
+
+        {upsells.length === 0 ? (
+          <p className="rounded-xl bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+            Sin ofertas &quot;antes de pagar&quot; configuradas en ningún producto.
+          </p>
+        ) : (
+          upsells.map((u) => (
+            <Link
+              key={u.id}
+              href={`/admin/productos/${u.triggerProductId}`}
+              className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800 hover:bg-emerald-100"
+            >
+              <span>
+                🎁 {u.triggerProductName} → {u.offerProductName} a {formatPrice(u.offerPrice)}
+                {u.offerSalePrice > u.offerPrice && (
+                  <span className="text-emerald-600"> (normal {formatPrice(u.offerSalePrice)})</span>
+                )}
+              </span>
+              <span className="text-xs text-emerald-600">Editar →</span>
+            </Link>
+          ))
+        )}
+
+        <div className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+          <span>💵 Siempre activo — {Math.round(CASH_DISCOUNT_RATE * 100)}% off pagando en efectivo</span>
+        </div>
+      </div>
 
       <form
         action={setCartPromoSettingsAction}

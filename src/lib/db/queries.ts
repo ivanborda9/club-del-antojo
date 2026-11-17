@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import { randomUUID } from "crypto";
 import { db } from "./client";
 import {
@@ -377,6 +378,30 @@ export async function getUpsellOffersForProductIds(productIds: string[]) {
       .innerJoin(products, eq(products.id, productUpsells.offerProductId))
       .where(inArray(productUpsells.triggerProductId, productIds));
     return rows.filter((r) => r.offerProduct.active);
+  }, []);
+}
+
+// Todas las ofertas "antes de pagar" configuradas, con los nombres de
+// ambos productos — para el resumen de /admin/promos (hoy la única forma
+// de verlas era abrir producto por producto). Envuelto en safeQuery: si
+// falta la migración de "product_upsells", el resumen las omite en vez de
+// romper la página.
+export async function getAllUpsells() {
+  return safeQuery(async () => {
+    const triggerProducts = alias(products, "trigger_products");
+    return db
+      .select({
+        id: productUpsells.id,
+        triggerProductId: productUpsells.triggerProductId,
+        triggerProductName: triggerProducts.name,
+        offerProductId: productUpsells.offerProductId,
+        offerProductName: products.name,
+        offerPrice: productUpsells.offerPrice,
+        offerSalePrice: products.salePrice,
+      })
+      .from(productUpsells)
+      .innerJoin(products, eq(products.id, productUpsells.offerProductId))
+      .innerJoin(triggerProducts, eq(triggerProducts.id, productUpsells.triggerProductId));
   }, []);
 }
 
