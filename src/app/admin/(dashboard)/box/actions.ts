@@ -8,7 +8,7 @@ export async function createBoxSizeAction(formData: FormData): Promise<void> {
   const name = String(formData.get("name") ?? "").trim();
   const price = Number(formData.get("price"));
   if (!name) return;
-  if (!Number.isFinite(price) || price <= 0) return;
+  if (!Number.isFinite(price) || price < 0) return;
 
   await createBoxSize({
     name,

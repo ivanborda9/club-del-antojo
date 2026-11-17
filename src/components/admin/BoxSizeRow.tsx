@@ -6,7 +6,7 @@ import {
   deleteBoxSizeAction,
   updateBoxSizeAction,
 } from "@/app/admin/(dashboard)/box/actions";
-import { formatPrice } from "@/config/site";
+import { formatBoxPrice, isFreeBoxPrice } from "@/lib/pricing";
 import type { BoxSizeRow as BoxSizeRowType } from "@/lib/db/schema";
 
 export function BoxSizeRow({ size }: { size: BoxSizeRowType }) {
@@ -50,7 +50,13 @@ export function BoxSizeRow({ size }: { size: BoxSizeRowType }) {
           </div>
           <div>
             <p className="text-sm font-semibold text-zinc-800">{size.name}</p>
-            <p className="text-sm text-orange-600">{formatPrice(size.price)}</p>
+            <p
+              className={`text-sm font-bold ${
+                isFreeBoxPrice(size.price) ? "text-emerald-600" : "text-orange-600"
+              }`}
+            >
+              {formatBoxPrice(size.price)}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -86,10 +92,23 @@ export function BoxSizeRow({ size }: { size: BoxSizeRowType }) {
       >
         <input type="hidden" name="id" value={size.id} />
         <input type="hidden" name="name" value={size.name} />
-        <input type="hidden" name="price" value={size.price} />
         <input type="hidden" name="sortOrder" value={size.sortOrder} />
         <input type="hidden" name="active" value={size.active.toString()} />
         <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
+
+        <label className="block w-28">
+          <span className="mb-1 block text-xs font-medium text-zinc-600">
+            Precio (0 = gratis)
+          </span>
+          <input
+            name="price"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={size.price}
+            className="input"
+          />
+        </label>
 
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-zinc-600">Foto</span>

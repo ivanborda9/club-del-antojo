@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { paletteFor } from "@/components/CategoryTabs";
-import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
-import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
+import { buildWhatsappOrderLink, siteConfig } from "@/config/site";
+import { CASH_DISCOUNT_RATE, formatBoxPrice, isFreeBoxPrice } from "@/lib/pricing";
 import type { BoxSizeRow } from "@/lib/db/schema";
 import type { PaymentMethod, Product } from "@/types";
 
@@ -106,7 +106,7 @@ export function ArmarBoxClient({ sizes, products }: Props) {
       const message = [
         `Pedido "Armá tu Box" para ${siteConfig.name}`,
         "",
-        `Tamaño: ${selectedSize.name} — ${formatPrice(order.total)}`,
+        `Tamaño: ${selectedSize.name} — ${formatBoxPrice(order.total)}`,
         "",
         "Productos para el box:",
         itemsSummary,
@@ -204,10 +204,16 @@ export function ArmarBoxClient({ sizes, products }: Props) {
                   <p className="text-base font-extrabold">{size.name}</p>
                   <p
                     className={`mt-1 text-sm font-bold ${
-                      sizeId === size.id ? "text-white" : "text-purple-600"
+                      isFreeBoxPrice(size.price)
+                        ? sizeId === size.id
+                          ? "text-emerald-300"
+                          : "text-emerald-600"
+                        : sizeId === size.id
+                          ? "text-white"
+                          : "text-purple-600"
                     }`}
                   >
-                    {formatPrice(size.price)}
+                    {formatBoxPrice(size.price)}
                   </p>
                   {outOfStock && (
                     <p className="mt-0.5 text-xs font-semibold text-red-500">Sin stock</p>
@@ -376,9 +382,9 @@ export function ArmarBoxClient({ sizes, products }: Props) {
             {loading
               ? "Procesando…"
               : method === "mercadopago"
-                ? `Pagar ${formatPrice(displayBoxPrice)} con Mercado Pago`
+                ? `Pagar ${formatBoxPrice(displayBoxPrice)} con Mercado Pago`
                 : method === "efectivo"
-                  ? `Confirmar box (${formatPrice(displayBoxPrice)} en efectivo)`
+                  ? `Confirmar box (${formatBoxPrice(displayBoxPrice)} en efectivo)`
                   : "Confirmar box y ver datos de transferencia"}
           </button>
         </section>
@@ -392,7 +398,10 @@ export function ArmarBoxClient({ sizes, products }: Props) {
               {totalItems} {totalItems === 1 ? "producto elegido" : "productos elegidos"}
             </span>
             <span className="font-extrabold text-purple-700">
-              Box {selectedSize.name} — {formatPrice(displayBoxPrice)}
+              Box {selectedSize.name} —{" "}
+              <span className={isFreeBoxPrice(displayBoxPrice) ? "text-emerald-600" : ""}>
+                {formatBoxPrice(displayBoxPrice)}
+              </span>
               {cashDiscount > 0 && (
                 <span className="ml-1 text-xs font-medium text-emerald-600">(5% off)</span>
               )}

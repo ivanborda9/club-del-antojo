@@ -81,7 +81,7 @@ export function BoxSizeForm() {
         <input name="name" required className="input" placeholder="Ej: Chica" />
       </label>
       <label className="block">
-        <span className="mb-1 block text-xs font-medium text-zinc-600">Precio</span>
+        <span className="mb-1 block text-xs font-medium text-zinc-600">Precio (0 = gratis)</span>
         <input name="price" type="number" step="0.01" min="0" required className="input" />
       </label>
       <label className="block">
