@@ -6,6 +6,7 @@ import {
   banners,
   boxSizes,
   categorySchedules,
+  categorySortOrder,
   orderItems,
   orders,
   productUpsells,
@@ -223,6 +224,33 @@ export async function setCategorySchedule(
 // Vuelve a dejar la categoría disponible todo el día.
 export async function clearCategorySchedule(category: string): Promise<void> {
   await db.delete(categorySchedules).where(eq(categorySchedules.category, category));
+}
+
+// ---------- Orden de categorías ----------
+
+// Orden manual de las categorías en la tienda. Envuelto en safeQuery: si
+// falta la migración de "category_sort_order", la home ordena alfabético
+// en vez de romperse.
+export async function getCategorySortOrders() {
+  return safeQuery(async () => db.select().from(categorySortOrder), []);
+}
+
+// Reemplazo completo del orden (para el formulario del admin, que manda
+// todas las categorías a la vez). sortOrder null borra la fila (la
+// categoría vuelve a ordenarse al final, alfabética).
+export async function setCategorySortOrders(
+  entries: { category: string; sortOrder: number | null }[]
+): Promise<void> {
+  for (const { category, sortOrder } of entries) {
+    if (sortOrder === null) {
+      await db.delete(categorySortOrder).where(eq(categorySortOrder.category, category));
+      continue;
+    }
+    await db
+      .insert(categorySortOrder)
+      .values({ category, sortOrder })
+      .onConflictDoUpdate({ target: categorySortOrder.category, set: { sortOrder } });
+  }
 }
 
 export type ProductInput = {

@@ -168,6 +168,17 @@ export const categorySchedules = sqliteTable("category_schedules", {
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
+// Orden manual en que se muestran las categorías en la tienda (solapas y
+// filas del carrusel de inicio). Una categoría sin fila acá se ordena al
+// final, alfabéticamente entre las demás sin orden. El nombre debe
+// coincidir exactamente con products.category — también determina el
+// orden de las solapas padre (según la primera subcategoría suya que
+// aparezca en el orden final).
+export const categorySortOrder = sqliteTable("category_sort_order", {
+  category: text("category").primaryKey(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
 // Configuración general tipo clave-valor (ej. intervalo del carrusel de
 // banners en segundos). Si falta una clave, el código usa un default.
 export const siteSettings = sqliteTable("site_settings", {
