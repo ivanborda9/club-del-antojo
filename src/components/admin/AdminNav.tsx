@@ -2,27 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { AdminRole } from "@/lib/adminAuth";
 
 const NAV_ITEMS = [
-  { href: "/admin", label: "Panel", icon: "🏠" },
-  { href: "/admin/productos", label: "Productos", icon: "🍬" },
-  { href: "/admin/categorias", label: "Categorías", icon: "🗂️" },
-  { href: "/admin/pedidos", label: "Pedidos", icon: "🧾" },
-  { href: "/admin/riders", label: "Repartidores", icon: "🛵" },
-  { href: "/admin/envios", label: "Envíos", icon: "🚚" },
-  { href: "/admin/horarios", label: "Horarios", icon: "🕒" },
-  { href: "/admin/banners", label: "Banners", icon: "📣" },
-  { href: "/admin/box", label: "Armá tu Box", icon: "🎁" },
-  { href: "/admin/promos", label: "Promos", icon: "🥤" },
-  { href: "/admin/reportes", label: "Reportes", icon: "📊" },
+  { href: "/admin", label: "Panel", icon: "🏠", ownerOnly: true },
+  { href: "/admin/productos", label: "Productos", icon: "🍬", ownerOnly: true },
+  { href: "/admin/stock", label: "Stock", icon: "📦", ownerOnly: false },
+  { href: "/admin/categorias", label: "Categorías", icon: "🗂️", ownerOnly: true },
+  { href: "/admin/pedidos", label: "Pedidos", icon: "🧾", ownerOnly: false },
+  { href: "/admin/riders", label: "Repartidores", icon: "🛵", ownerOnly: false },
+  { href: "/admin/envios", label: "Envíos", icon: "🚚", ownerOnly: true },
+  { href: "/admin/horarios", label: "Horarios", icon: "🕒", ownerOnly: false },
+  { href: "/admin/banners", label: "Banners", icon: "📣", ownerOnly: true },
+  { href: "/admin/box", label: "Armá tu Box", icon: "🎁", ownerOnly: true },
+  { href: "/admin/promos", label: "Promos", icon: "🥤", ownerOnly: true },
+  { href: "/admin/reportes", label: "Reportes", icon: "📊", ownerOnly: true },
 ];
 
-export function AdminNav({ newOrdersCount = 0 }: { newOrdersCount?: number }) {
+export function AdminNav({
+  newOrdersCount = 0,
+  role,
+}: {
+  newOrdersCount?: number;
+  role: AdminRole;
+}) {
   const pathname = usePathname();
+  const items = NAV_ITEMS.filter((item) => role === "owner" || !item.ownerOnly);
 
   return (
     <nav className="no-scrollbar mx-auto flex max-w-5xl gap-2 overflow-x-auto px-4 pb-3">
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         const active =
           item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
         return (

@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { checkAdminPassword, createAdminSession } from "@/lib/adminAuth";
+import { checkAdminCredentials, createAdminSession } from "@/lib/adminAuth";
 
 export type LoginState = { error: string | null };
 
@@ -11,10 +11,11 @@ export async function loginAction(
 ): Promise<LoginState> {
   const password = String(formData.get("password") ?? "");
 
-  if (!checkAdminPassword(password)) {
+  const role = checkAdminCredentials(password);
+  if (!role) {
     return { error: "Contraseña incorrecta." };
   }
 
-  await createAdminSession();
-  redirect("/admin");
+  await createAdminSession(role);
+  redirect(role === "owner" ? "/admin" : "/admin/pedidos");
 }

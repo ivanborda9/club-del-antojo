@@ -463,6 +463,15 @@ export async function updateProduct(id: string, input: ProductInput): Promise<vo
     .where(eq(products.id, id));
 }
 
+// Para la pantalla de "Stock" (acceso simplificado, sin precios ni
+// ganancia — pensada para un rol sin acceso al resto del admin).
+export async function updateProductStock(id: string, stock: number): Promise<void> {
+  await db
+    .update(products)
+    .set({ stock, updatedAt: sql`(current_timestamp)` })
+    .where(eq(products.id, id));
+}
+
 export async function deleteProduct(id: string): Promise<void> {
   await db.delete(products).where(eq(products.id, id));
 }
@@ -478,6 +487,15 @@ export async function getVariantsForProduct(productId: string) {
       .select()
       .from(productVariants)
       .where(eq(productVariants.productId, productId));
+    return rows.sort((a, b) => a.sortOrder - b.sortOrder);
+  }, []);
+}
+
+// Todas las variantes de todos los productos, para la pantalla de Stock
+// (agrupa por producto ahí mismo en vez de consultar una por una).
+export async function getAllProductVariants() {
+  return safeQuery(async () => {
+    const rows = await db.select().from(productVariants);
     return rows.sort((a, b) => a.sortOrder - b.sortOrder);
   }, []);
 }

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { isAdminAuthenticated } from "@/lib/adminAuth";
+import { getAdminRole } from "@/lib/adminAuth";
 import { getNewOrdersCount } from "@/lib/db/queries";
 import { AdminLogoutButton } from "@/components/admin/AdminLogoutButton";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -12,7 +12,8 @@ export default async function AdminDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  if (!(await isAdminAuthenticated())) {
+  const role = await getAdminRole();
+  if (!role) {
     redirect("/admin/login");
   }
 
@@ -30,7 +31,7 @@ export default async function AdminDashboardLayout({
           </Link>
           <AdminLogoutButton />
         </div>
-        <AdminNav newOrdersCount={newOrdersCount} />
+        <AdminNav newOrdersCount={newOrdersCount} role={role} />
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
