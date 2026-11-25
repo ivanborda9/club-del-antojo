@@ -212,6 +212,20 @@ export const shippingRates = sqliteTable("shipping_rates", {
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
+// Horarios de atención: la tienda se considera abierta si el momento
+// actual cae dentro de alguna de estas filas (días + franja horaria). Sin
+// ninguna fila cargada, se considera siempre abierta (no bloquea ventas
+// por accidente en una tienda que todavía no configuró esto). El cierre o
+// apertura forzados manuales van aparte, en site_settings.
+export const businessHours = sqliteTable("business_hours", {
+  id: text("id").primaryKey(),
+  // Días de la semana en que aplica, 0=domingo..6=sábado, separados por coma.
+  daysOfWeek: text("days_of_week").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});
+
 // Oferta que se muestra antes de pagar cuando "triggerProductId" está en el
 // carrito (ej. bebida con alcohol → ofrecer hielo con descuento). Un solo
 // producto gatillo tiene a lo sumo una oferta activa (unique). offerPrice es
@@ -254,3 +268,5 @@ export type ProductVariantRow = typeof productVariants.$inferSelect;
 export type NewProductVariantRow = typeof productVariants.$inferInsert;
 export type ShippingRateRow = typeof shippingRates.$inferSelect;
 export type NewShippingRateRow = typeof shippingRates.$inferInsert;
+export type BusinessHourRow = typeof businessHours.$inferSelect;
+export type NewBusinessHourRow = typeof businessHours.$inferInsert;

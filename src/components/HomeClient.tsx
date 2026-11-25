@@ -10,6 +10,7 @@ import { CategoryRow } from "@/components/CategoryRow";
 import { CategoryTabs } from "@/components/CategoryTabs";
 import { Header } from "@/components/Header";
 import { ProductGrid } from "@/components/ProductGrid";
+import { StoreClosedDetails, StoreStatusBar } from "@/components/StoreStatusBadge";
 import { siteConfig } from "@/config/site";
 import type { BannerRow } from "@/lib/db/schema";
 import type { Product } from "@/types";
@@ -184,6 +185,7 @@ export function HomeClient({
     <div className="flex flex-1 flex-col pb-28">
       <div className="sticky top-0 z-30">
         <Header onCartClick={() => setCartOpen(true)} />
+        <StoreStatusBar />
         <CategoryTabs
           topLevel={categoryInfo.topLevel}
           activeTopLevel={activeParentCategory ?? activeCategory}
@@ -194,6 +196,9 @@ export function HomeClient({
         />
       </div>
 
+      <div className="px-4 pt-2">
+        <StoreClosedDetails />
+      </div>
       <Banners banners={banners} intervalSeconds={bannerIntervalSeconds} />
 
       <p className="px-4 pt-3 text-xs text-zinc-500">

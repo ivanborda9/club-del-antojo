@@ -134,6 +134,13 @@
       "when": 1795568611096,
       "tag": "0018_goofy_namor",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1795571742543,
+      "tag": "0019_aspiring_mandarin",
+      "breakpoints": true
     }
   ]
 }

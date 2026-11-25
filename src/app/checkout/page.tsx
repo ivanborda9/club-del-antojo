@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
+import { StoreClosedDetails, StoreStatusBar, useStoreOpen } from "@/components/StoreStatusBadge";
 import { useCart } from "@/context/CartContext";
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import type { PaymentMethod, Product } from "@/types";
@@ -171,11 +172,13 @@ export default function CheckoutPage() {
   // efectivo): es el costo real de la entrega, se suma aparte.
   const displayTotal = subtotalAfterUpsells - cashDiscount + shippingCost;
 
+  const storeOpen = useStoreOpen();
   const isFormValid = name.trim() && phone.trim() && address.trim();
+  const canSubmit = isFormValid && storeOpen !== false;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isFormValid || items.length === 0) return;
+    if (!canSubmit || items.length === 0) return;
     setError(null);
     setLoading(true);
 
@@ -327,7 +330,12 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="safe-bottom mx-auto max-w-md px-4 py-6">
+    <div className="safe-bottom">
+      <StoreStatusBar />
+      <div className="mx-auto max-w-md px-4 py-6">
+      <div className="mb-3">
+        <StoreClosedDetails />
+      </div>
       <h1 className="text-lg font-bold text-zinc-800">Terminar pedido</h1>
       <p className="mt-1 text-xs text-zinc-500">🚚 {siteConfig.deliveryNote}</p>
 
@@ -501,9 +509,16 @@ export default function CheckoutPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
+        {storeOpen === false && (
+          <p className="text-center text-sm font-semibold text-red-600">
+            Estamos cerrados en este momento — no se pueden confirmar pedidos hasta que
+            volvamos a abrir.
+          </p>
+        )}
+
         <button
           type="submit"
-          disabled={!isFormValid || loading}
+          disabled={!canSubmit || loading}
           className="flex h-12 w-full items-center justify-center rounded-full bg-orange-600 text-sm font-bold text-white disabled:opacity-50"
         >
           {loading
@@ -515,6 +530,7 @@ export default function CheckoutPage() {
                 : "Confirmar pedido y ver datos de transferencia"}
         </button>
       </form>
+      </div>
     </div>
   );
 }

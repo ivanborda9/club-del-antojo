@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { boxSizes, orderItems, orders, products } from "@/lib/db/schema";
+import { isStoreOpenNow } from "@/lib/db/queries";
 import { isWithinSchedule } from "@/lib/schedule";
 import { notifyRidersOfNewOrder } from "@/lib/push";
 import { CheckoutError } from "@/lib/checkout";
@@ -32,6 +33,11 @@ export async function createBoxOrderFromSelection(
 ): Promise<CreatedBoxOrder> {
   if (!itemsInput.length) {
     throw new CheckoutError("Elegí al menos un producto para el box.");
+  }
+  if (!(await isStoreOpenNow())) {
+    throw new CheckoutError(
+      "En este momento no estamos atendiendo. Volvé a intentar cuando volvamos a abrir."
+    );
   }
   if (!gift.recipientName.trim()) {
     throw new CheckoutError("Falta el nombre de quién recibe el regalo.");

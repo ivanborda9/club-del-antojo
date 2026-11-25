@@ -5,6 +5,7 @@ import { db } from "./client";
 import {
   banners,
   boxSizes,
+  businessHours,
   categorySchedules,
   categorySortOrder,
   orderItems,
@@ -27,7 +28,7 @@ import type {
   ProductRow,
   RiderRow,
 } from "./schema";
-import { isWithinSchedule } from "@/lib/schedule";
+import { getCurrentLocalDayOfWeek, getCurrentLocalTime, isWithinSchedule } from "@/lib/schedule";
 
 // Para funciones "decorativas" (no esenciales para vender) cuya tabla
 // puede no existir todavía en producción si falta una migración: que un
@@ -225,6 +226,74 @@ export async function setCategorySchedule(
 // Vuelve a dejar la categoría disponible todo el día.
 export async function clearCategorySchedule(category: string): Promise<void> {
   await db.delete(categorySchedules).where(eq(categorySchedules.category, category));
+}
+
+// ---------- Horario de atención (tienda abierta/cerrada) ----------
+
+const STORE_OVERRIDE_SETTING_KEY = "store_override";
+export type StoreOverride = "" | "open" | "closed";
+
+// Horarios en que la tienda atiende: abierta si el momento actual cae en
+// alguna fila (OR entre ellas, por si hay distintos horarios según el
+// día). Envuelto en safeQuery: si falta la migración, no hay filas y se
+// considera siempre abierta.
+export async function getAllBusinessHours() {
+  return safeQuery(async () => db.select().from(businessHours), []);
+}
+
+export async function addBusinessHour(
+  daysOfWeek: string,
+  startTime: string,
+  endTime: string
+): Promise<string> {
+  const id = randomUUID();
+  await db.insert(businessHours).values({ id, daysOfWeek, startTime, endTime });
+  return id;
+}
+
+export async function deleteBusinessHour(id: string): Promise<void> {
+  await db.delete(businessHours).where(eq(businessHours.id, id));
+}
+
+// Forzado manual: "open"/"closed" ignora el horario configurado; ""
+// (default) sigue el horario automático.
+export async function getStoreOverride(): Promise<StoreOverride> {
+  return safeQuery(async () => {
+    const row = (
+      await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.key, STORE_OVERRIDE_SETTING_KEY))
+        .limit(1)
+    )[0];
+    return (row?.value as StoreOverride) ?? "";
+  }, "");
+}
+
+export async function setStoreOverride(value: StoreOverride): Promise<void> {
+  await db
+    .insert(siteSettings)
+    .values({ key: STORE_OVERRIDE_SETTING_KEY, value })
+    .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
+}
+
+// Si la tienda está abierta ahora mismo: el forzado manual manda si está
+// seteado, si no se fija si el momento actual cae en algún horario
+// configurado (sin ninguno cargado, se considera siempre abierta).
+export async function isStoreOpenNow(): Promise<boolean> {
+  const override = await getStoreOverride();
+  if (override === "open") return true;
+  if (override === "closed") return false;
+
+  const hours = await getAllBusinessHours();
+  if (hours.length === 0) return true;
+
+  const today = getCurrentLocalDayOfWeek();
+  const now = getCurrentLocalTime();
+  return hours.some((h) => {
+    const days = h.daysOfWeek.split(",").map(Number);
+    return days.includes(today) && isWithinSchedule(h.startTime, h.endTime, now);
+  });
 }
 
 // ---------- Orden de categorías ----------

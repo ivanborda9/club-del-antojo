@@ -7,6 +7,7 @@ import {
   getCartPromoSettings,
   getUpsellOffersForProductIds,
   getVariantsForProduct,
+  isStoreOpenNow,
   restoreStockForOrder,
 } from "@/lib/db/queries";
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
@@ -40,6 +41,11 @@ export async function createOrderFromCart(
   paymentMethod: "mercadopago" | "transferencia" | "efectivo"
 ): Promise<CreatedOrder> {
   if (!itemsInput.length) throw new CheckoutError("El carrito está vacío.");
+  if (!(await isStoreOpenNow())) {
+    throw new CheckoutError(
+      "En este momento no estamos atendiendo. Volvé a intentar cuando volvamos a abrir."
+    );
+  }
 
   const resolved: {
     productId: string;

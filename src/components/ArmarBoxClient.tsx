@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { paletteFor } from "@/components/CategoryTabs";
+import { StoreClosedDetails, StoreStatusBar, useStoreOpen } from "@/components/StoreStatusBadge";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
 import { CASH_DISCOUNT_RATE, formatBoxPrice, isFreeBoxPrice } from "@/lib/pricing";
 import type { BoxSizeRow } from "@/lib/db/schema";
@@ -94,11 +95,13 @@ export function ArmarBoxClient({ sizes, products }: Props) {
     setQuantities((prev) => ({ ...prev, [productId]: clamped }));
   }
 
+  const storeOpen = useStoreOpen();
   const isFormValid =
     name.trim() && phone.trim() && address.trim() && recipientName.trim() && selectedSize;
+  const canSubmit = isFormValid && storeOpen !== false;
 
   async function handleSubmit() {
-    if (!isFormValid || !selectedSize || chosenItems.length === 0) return;
+    if (!canSubmit || !selectedSize || chosenItems.length === 0) return;
     setError(null);
     setLoading(true);
 
@@ -212,8 +215,12 @@ export function ArmarBoxClient({ sizes, products }: Props) {
           Elegí el tamaño, los productos y le ponemos tu mensaje en la tarjeta.
         </p>
       </header>
+      <StoreStatusBar />
 
       <div className="px-4">
+        <div className="mt-3">
+          <StoreClosedDetails />
+        </div>
         {/* Paso 1: tamaño */}
         <section className="mt-5">
           <p className="text-sm font-bold text-zinc-800">1. Elegí el tamaño</p>
@@ -421,10 +428,17 @@ export function ArmarBoxClient({ sizes, products }: Props) {
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
+          {storeOpen === false && (
+            <p className="text-center text-sm font-semibold text-red-600">
+              Estamos cerrados en este momento — no se pueden confirmar pedidos hasta
+              que volvamos a abrir.
+            </p>
+          )}
+
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!isFormValid || loading}
+            disabled={!canSubmit || loading}
             className="flex h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 text-sm font-bold text-white disabled:opacity-50"
           >
             {loading
