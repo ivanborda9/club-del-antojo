@@ -12,6 +12,7 @@ export async function setStoreOverrideAction(formData: FormData): Promise<void> 
   const value = String(formData.get("override") ?? "");
   if (value !== "" && value !== "open" && value !== "closed") return;
   await setStoreOverride(value as StoreOverride);
+  revalidatePath("/admin");
   revalidatePath("/admin/horarios");
   revalidatePath("/");
   revalidatePath("/checkout");
@@ -25,6 +26,7 @@ export async function addBusinessHourAction(formData: FormData): Promise<void> {
   if (days.length === 0 || !startTime || !endTime) return;
 
   await addBusinessHour(days.join(","), startTime, endTime);
+  revalidatePath("/admin");
   revalidatePath("/admin/horarios");
   revalidatePath("/");
   revalidatePath("/checkout");
@@ -35,6 +37,7 @@ export async function deleteBusinessHourAction(formData: FormData): Promise<void
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteBusinessHour(id);
+  revalidatePath("/admin");
   revalidatePath("/admin/horarios");
   revalidatePath("/");
   revalidatePath("/checkout");

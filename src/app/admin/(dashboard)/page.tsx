@@ -3,25 +3,94 @@ import {
   getLowStockProducts,
   getNewOrdersCount,
   getSalesReport,
+  getStoreOverride,
+  isStoreOpenNow,
   listOrders,
   toSqliteTimestamp,
 } from "@/lib/db/queries";
 import { formatPrice } from "@/config/site";
 import { getArgentinaTodayBoundsUTC } from "@/lib/timezone";
+import { setStoreOverrideAction } from "./horarios/actions";
 
 export default async function AdminDashboardPage() {
   const { start, end } = getArgentinaTodayBoundsUTC();
 
-  const [todayReport, pendingOrders, lowStock, newOrdersCount] = await Promise.all([
-    getSalesReport(toSqliteTimestamp(start), toSqliteTimestamp(end)),
-    listOrders("pendiente_pago"),
-    getLowStockProducts(),
-    getNewOrdersCount(),
-  ]);
+  const [todayReport, pendingOrders, lowStock, newOrdersCount, storeOpen, storeOverride] =
+    await Promise.all([
+      getSalesReport(toSqliteTimestamp(start), toSqliteTimestamp(end)),
+      listOrders("pendiente_pago"),
+      getLowStockProducts(),
+      getNewOrdersCount(),
+      isStoreOpenNow(),
+      getStoreOverride(),
+    ]);
 
   return (
     <div>
       <h1 className="text-2xl font-extrabold text-zinc-900">Panel</h1>
+
+      <div
+        className={`mt-4 rounded-2xl p-4 ${storeOpen ? "bg-emerald-500" : "bg-zinc-800"}`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-base font-extrabold text-white">
+            {storeOpen ? "🟢 Tienda ABIERTA" : "🔴 Tienda CERRADA"}
+          </p>
+          <Link
+            href="/admin/horarios"
+            className="shrink-0 text-xs font-semibold text-white/80 underline underline-offset-2"
+          >
+            Configurar horarios →
+          </Link>
+        </div>
+
+        {storeOverride === "closed" && (
+          <form action={setStoreOverrideAction} className="mt-2">
+            <input type="hidden" name="override" value="" />
+            <p className="text-xs text-white/80">
+              ⚠️ Forzada cerrada manualmente — se queda así hasta que la vuelvas a abrir,
+              aunque esté dentro de tu horario habitual.
+            </p>
+            <button
+              type="submit"
+              className="mt-2 h-10 w-full rounded-full bg-white text-sm font-extrabold text-zinc-800"
+            >
+              ✅ Volver a abrir
+            </button>
+          </form>
+        )}
+
+        {storeOverride === "open" && (
+          <form action={setStoreOverrideAction} className="mt-2">
+            <input type="hidden" name="override" value="" />
+            <p className="text-xs text-white/80">
+              Forzada abierta manualmente (ignora el horario configurado).
+            </p>
+            <button
+              type="submit"
+              className="mt-2 h-10 w-full rounded-full bg-white/20 text-sm font-semibold text-white"
+            >
+              Volver al horario automático
+            </button>
+          </form>
+        )}
+
+        {storeOverride === "" && (
+          <form action={setStoreOverrideAction} className="mt-2">
+            <input type="hidden" name="override" value="closed" />
+            <p className="text-xs text-white/80">
+              Según tu horario automático. Si necesitás cerrar ahora mismo (ej. te
+              quedaste sin stock de todo, o un imprevisto):
+            </p>
+            <button
+              type="submit"
+              className="mt-2 h-10 w-full rounded-full bg-white/20 text-sm font-semibold text-white"
+            >
+              🚫 Cerrar ahora
+            </button>
+          </form>
+        )}
+      </div>
 
       {newOrdersCount > 0 && (
         <Link
