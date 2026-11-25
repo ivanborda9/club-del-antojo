@@ -102,8 +102,18 @@ export default async function OrderDetailPage(
             </li>
           ))}
         </ul>
+        {order.shippingCost > 0 && (
+          <div className="mt-1 flex justify-between text-sm text-zinc-600">
+            <span>
+              🚚 Envío
+              {order.shippingDistanceKm !== null &&
+                ` (${order.shippingDistanceKm.toFixed(1)} km)`}
+            </span>
+            <span>{formatPrice(order.shippingCost)}</span>
+          </div>
+        )}
         <div className="mt-2 flex justify-between border-t border-zinc-100 pt-2 text-sm font-bold text-zinc-800">
-          <span>{order.isBox ? `Total (box ${order.boxSizeName})` : "Total"}</span>
+          <span>{order.isBox ? `Total (box ${order.boxSizeName} + envío)` : "Total"}</span>
           <span>{formatPrice(order.total)}</span>
         </div>
         {order.isBox && (
@@ -138,8 +148,8 @@ export default async function OrderDetailPage(
       <div className="mt-4">
         <DeleteOrderButton id={order.id} customerName={order.customerName} />
         <p className="mt-2 text-center text-xs text-zinc-400">
-          Para pedidos de prueba u otros que quieras sacar de la lista. No devuelve
-          stock — si hace falta, cancelá el pedido antes de borrarlo.
+          Para pedidos de prueba u otros que quieras sacar de la lista. Si no estaba
+          cancelado, devuelve el stock reservado automáticamente.
         </p>
       </div>
     </div>

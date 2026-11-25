@@ -35,13 +35,26 @@ export async function POST(request: Request) {
   try {
     const result = await preference.create({
       body: {
-        items: order.items.map((it) => ({
-          id: it.productId,
-          title: it.variantName ? `${it.name} (${it.variantName})` : it.name,
-          quantity: it.quantity,
-          unit_price: it.unitPrice,
-          currency_id: siteConfig.currency,
-        })),
+        items: [
+          ...order.items.map((it) => ({
+            id: it.productId,
+            title: it.variantName ? `${it.name} (${it.variantName})` : it.name,
+            quantity: it.quantity,
+            unit_price: it.unitPrice,
+            currency_id: siteConfig.currency,
+          })),
+          ...(order.shippingCost > 0
+            ? [
+                {
+                  id: "envio",
+                  title: "Envío",
+                  quantity: 1,
+                  unit_price: order.shippingCost,
+                  currency_id: siteConfig.currency,
+                },
+              ]
+            : []),
+        ],
         payer: { name: body.buyer.name, phone: { number: body.buyer.phone } },
         external_reference: order.orderId,
         notification_url: `${siteUrl}/api/webhooks/mercadopago`,

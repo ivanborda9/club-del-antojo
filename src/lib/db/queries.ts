@@ -14,6 +14,7 @@ import {
   products,
   pushSubscriptions,
   riders,
+  shippingRates,
   siteSettings,
 } from "./schema";
 import type {
@@ -251,6 +252,115 @@ export async function setCategorySortOrders(
       .values({ category, sortOrder })
       .onConflictDoUpdate({ target: categorySortOrder.category, set: { sortOrder } });
   }
+}
+
+// ---------- Envío ----------
+
+const SHIPPING_SETTING_KEYS = {
+  originAddress: "shipping_origin_address",
+  originLat: "shipping_origin_lat",
+  originLng: "shipping_origin_lng",
+  defaultPrice: "shipping_default_price",
+} as const;
+
+export type StoreOrigin = { address: string | null; lat: number | null; lng: number | null };
+
+// Ubicación del local, usada como punto de partida para calcular la
+// distancia de cada envío. Envuelto en safeQuery: sin esto configurado
+// (o sin la migración), no se puede calcular distancia — el llamador usa
+// el envío por defecto en ese caso.
+export async function getStoreOrigin(): Promise<StoreOrigin> {
+  return safeQuery(async () => {
+    const rows = await db
+      .select()
+      .from(siteSettings)
+      .where(
+        inArray(siteSettings.key, [
+          SHIPPING_SETTING_KEYS.originAddress,
+          SHIPPING_SETTING_KEYS.originLat,
+          SHIPPING_SETTING_KEYS.originLng,
+        ])
+      );
+    const byKey = new Map(rows.map((r) => [r.key, r.value]));
+    const lat = Number(byKey.get(SHIPPING_SETTING_KEYS.originLat));
+    const lng = Number(byKey.get(SHIPPING_SETTING_KEYS.originLng));
+    return {
+      address: byKey.get(SHIPPING_SETTING_KEYS.originAddress) ?? null,
+      lat: Number.isFinite(lat) ? lat : null,
+      lng: Number.isFinite(lng) ? lng : null,
+    };
+  }, { address: null, lat: null, lng: null });
+}
+
+export async function setStoreOrigin(address: string, lat: number, lng: number): Promise<void> {
+  const entries: [string, string][] = [
+    [SHIPPING_SETTING_KEYS.originAddress, address],
+    [SHIPPING_SETTING_KEYS.originLat, String(lat)],
+    [SHIPPING_SETTING_KEYS.originLng, String(lng)],
+  ];
+  for (const [key, value] of entries) {
+    await db
+      .insert(siteSettings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
+  }
+}
+
+export async function getDefaultShippingPrice(): Promise<number> {
+  return safeQuery(async () => {
+    const row = (
+      await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.key, SHIPPING_SETTING_KEYS.defaultPrice))
+        .limit(1)
+    )[0];
+    const parsed = row ? Number(row.value) : 0;
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, 0);
+}
+
+export async function setDefaultShippingPrice(price: number): Promise<void> {
+  const value = String(Math.max(0, price));
+  await db
+    .insert(siteSettings)
+    .values({ key: SHIPPING_SETTING_KEYS.defaultPrice, value })
+    .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
+}
+
+// Reglas de precio de envío, ordenadas por distancia (la más ajustada
+// primero) para que el que busca una coincidencia tome la primera que
+// cubra la distancia real. Envuelto en safeQuery: si falta la migración,
+// no hay reglas y se usa el envío por defecto.
+export async function getAllShippingRates() {
+  return safeQuery(async () => {
+    const rows = await db.select().from(shippingRates);
+    return rows.sort((a, b) => a.maxDistanceKm - b.maxDistanceKm);
+  }, []);
+}
+
+export type ShippingRateInput = {
+  label: string;
+  daysOfWeek: string;
+  startTime: string;
+  endTime: string;
+  maxDistanceKm: number;
+  price: number;
+  active: boolean;
+};
+
+export async function createShippingRate(input: ShippingRateInput): Promise<string> {
+  const id = randomUUID();
+  await db.insert(shippingRates).values({ id, ...input });
+  return id;
+}
+
+export async function updateShippingRate(id: string, input: ShippingRateInput): Promise<void> {
+  await db.update(shippingRates).set(input).where(eq(shippingRates.id, id));
+}
+
+export async function deleteShippingRate(id: string): Promise<void> {
+  await db.delete(shippingRates).where(eq(shippingRates.id, id));
 }
 
 export type ProductInput = {
@@ -539,9 +649,14 @@ export async function restoreStockForOrder(orderId: string): Promise<void> {
 }
 
 // Borra el pedido definitivamente (para pedidos de prueba u otros que no
-// tengan sentido mantener). No toca el stock — si el pedido todavía estaba
-// reservando stock, cancelalo antes para que se devuelva.
+// tengan sentido mantener). Si todavía no estaba cancelado, antes devuelve
+// el stock que tenía reservado (productos, variantes y tamaño de box según
+// corresponda) — no hay forma de recuperarlo después de borrado.
 export async function deleteOrder(orderId: string): Promise<void> {
+  const rows = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+  if (rows[0] && rows[0].status !== "cancelado") {
+    await restoreStockForOrder(orderId);
+  }
   await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
   await db.delete(orders).where(eq(orders.id, orderId));
 }

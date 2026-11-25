@@ -14,6 +14,15 @@ import { siteConfig } from "@/config/site";
 import type { BannerRow } from "@/lib/db/schema";
 import type { Product } from "@/types";
 
+// Sin stock: todas las variantes agotadas (si tiene) o el stock del
+// producto en 0 (si no tiene variantes).
+function isOutOfStock(product: Product): boolean {
+  if (product.variants && product.variants.length > 0) {
+    return product.variants.every((v) => v.stock <= 0);
+  }
+  return product.stock <= 0;
+}
+
 type Props = {
   products: Product[];
   categories: string[];
@@ -70,12 +79,17 @@ export function HomeClient({
   }, [products, categories]);
 
   // Productos agrupados por categoría, en el mismo orden que "categories" —
-  // para armar una fila-carrusel por categoría en la vista principal.
+  // para armar una fila-carrusel por categoría en la vista principal. Los
+  // sin stock quedan al final de su fila (siguen apareciendo, pero no
+  // ocupan los primeros lugares del carrusel).
   const productsByCategory = useMemo(() => {
     const map = new Map<string, Product[]>();
     for (const category of categories) map.set(category, []);
     for (const product of products) {
       map.get(product.category)?.push(product);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => Number(isOutOfStock(a)) - Number(isOutOfStock(b)));
     }
     return map;
   }, [products, categories]);

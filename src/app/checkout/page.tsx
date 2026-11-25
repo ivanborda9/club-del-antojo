@@ -36,6 +36,8 @@ export default function CheckoutPage() {
   const [cashConfirmed, setCashConfirmed] = useState(false);
   const [upsellOffers, setUpsellOffers] = useState<UpsellOffer[]>([]);
   const [cartPromo, setCartPromo] = useState<CartPromo | null>(null);
+  const [shippingCost, setShippingCost] = useState(0);
+  const [shippingLoading, setShippingLoading] = useState(false);
 
   const cartProductIds = items.map((item) => item.product.id).sort().join(",");
 
@@ -73,6 +75,43 @@ export default function CheckoutPage() {
       cancelled = true;
     };
   }, []);
+
+  // Cotización de envío: solo para que el cliente vea un estimado antes de
+  // pagar — el costo real siempre lo recalcula el servidor al crear el
+  // pedido (geocodifica de nuevo, nunca confía en esto). Con debounce para
+  // no pegarle a la API en cada tecla.
+  useEffect(() => {
+    if (!address.trim()) {
+      // Dirección vacía: no hay nada que cotizar, solo resetea el estado.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShippingCost(0);
+      setShippingLoading(false);
+      return;
+    }
+    setShippingLoading(true);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      fetch("/api/shipping-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (!cancelled) setShippingCost(data.cost ?? 0);
+        })
+        .catch(() => {
+          if (!cancelled) setShippingCost(0);
+        })
+        .finally(() => {
+          if (!cancelled) setShippingLoading(false);
+        });
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [address]);
 
   // Mismo criterio que el servidor para el descuento: alcanza con que haya
   // algo de la categoría gatillo en el carrito. La categoría "excluida" acá
@@ -128,7 +167,9 @@ export default function CheckoutPage() {
   // cobro real siempre lo recalcula el servidor.
   const cashDiscount =
     method === "efectivo" ? Math.round(subtotalAfterUpsells * CASH_DISCOUNT_RATE) : 0;
-  const displayTotal = subtotalAfterUpsells - cashDiscount;
+  // El envío no se descuenta con nada (ni la promo, ni el 5% de
+  // efectivo): es el costo real de la entrega, se suma aparte.
+  const displayTotal = subtotalAfterUpsells - cashDiscount + shippingCost;
 
   const isFormValid = name.trim() && phone.trim() && address.trim();
 
@@ -190,6 +231,7 @@ export default function CheckoutPage() {
         `Pedido para ${siteConfig.name}`,
         "",
         summary,
+        order.shippingCost > 0 ? `• Envío — ${formatPrice(order.shippingCost)}` : null,
         "",
         `Total: ${formatPrice(order.total)}`,
         "",
@@ -318,6 +360,12 @@ export default function CheckoutPage() {
           <div className="mt-1 flex justify-between text-sm text-emerald-600">
             <span>💵 5% off por pagar en efectivo</span>
             <span>−{formatPrice(cashDiscount)}</span>
+          </div>
+        )}
+        {address.trim() && (
+          <div className="mt-1 flex justify-between text-sm text-zinc-600">
+            <span>🚚 Envío</span>
+            <span>{shippingLoading ? "Calculando…" : formatPrice(shippingCost)}</span>
           </div>
         )}
         <div className="mt-2 flex justify-between border-t border-orange-100 pt-2 text-sm font-bold text-zinc-800">

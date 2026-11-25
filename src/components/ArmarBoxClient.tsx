@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { paletteFor } from "@/components/CategoryTabs";
-import { buildWhatsappOrderLink, siteConfig } from "@/config/site";
+import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
 import { CASH_DISCOUNT_RATE, formatBoxPrice, isFreeBoxPrice } from "@/lib/pricing";
 import type { BoxSizeRow } from "@/lib/db/schema";
 import type { PaymentMethod, Product } from "@/types";
@@ -29,6 +29,44 @@ export function ArmarBoxClient({ sizes, products }: Props) {
   const [transferSent, setTransferSent] = useState(false);
   const [cashConfirmed, setCashConfirmed] = useState(false);
   const [orderSummary, setOrderSummary] = useState<string | null>(null);
+  const [shippingCost, setShippingCost] = useState(0);
+  const [shippingLoading, setShippingLoading] = useState(false);
+
+  // Cotización de envío: solo para que el cliente vea un estimado antes de
+  // pagar — el costo real siempre lo recalcula el servidor al crear el
+  // pedido. Con debounce para no pegarle a la API en cada tecla.
+  useEffect(() => {
+    if (!address.trim()) {
+      // Dirección vacía: no hay nada que cotizar, solo resetea el estado.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShippingCost(0);
+      setShippingLoading(false);
+      return;
+    }
+    setShippingLoading(true);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      fetch("/api/shipping-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (!cancelled) setShippingCost(data.cost ?? 0);
+        })
+        .catch(() => {
+          if (!cancelled) setShippingCost(0);
+        })
+        .finally(() => {
+          if (!cancelled) setShippingLoading(false);
+        });
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [address]);
 
   const selectedSize = sizes.find((s) => s.id === sizeId) ?? null;
   const chosenItems = useMemo(
@@ -48,6 +86,8 @@ export function ArmarBoxClient({ sizes, products }: Props) {
       ? Math.round(selectedSize.price * CASH_DISCOUNT_RATE)
       : 0;
   const displayBoxPrice = selectedSize ? selectedSize.price - cashDiscount : 0;
+  // El envío no se descuenta con nada: se suma aparte sobre el precio del box.
+  const displayTotal = displayBoxPrice + shippingCost;
 
   function setQty(productId: string, qty: number, maxStock: number) {
     const clamped = Math.max(0, Math.min(qty, maxStock));
@@ -106,7 +146,9 @@ export function ArmarBoxClient({ sizes, products }: Props) {
       const message = [
         `Pedido "Armá tu Box" para ${siteConfig.name}`,
         "",
-        `Tamaño: ${selectedSize.name} — ${formatBoxPrice(order.total)}`,
+        `Tamaño: ${selectedSize.name} — ${formatBoxPrice(order.total - order.shippingCost)}`,
+        order.shippingCost > 0 ? `Envío — ${formatPrice(order.shippingCost)}` : null,
+        `Total: ${formatPrice(order.total)}`,
         "",
         "Productos para el box:",
         itemsSummary,
@@ -334,6 +376,12 @@ export function ArmarBoxClient({ sizes, products }: Props) {
               placeholder="Calle, número, piso/depto, referencia"
             />
           </Field>
+          {address.trim() && (
+            <div className="flex justify-between text-sm text-zinc-600">
+              <span>🚚 Envío</span>
+              <span>{shippingLoading ? "Calculando…" : formatPrice(shippingCost)}</span>
+            </div>
+          )}
           <Field label="Mensaje para la tarjeta (opcional)">
             <textarea
               value={giftMessage}
@@ -382,9 +430,9 @@ export function ArmarBoxClient({ sizes, products }: Props) {
             {loading
               ? "Procesando…"
               : method === "mercadopago"
-                ? `Pagar ${formatBoxPrice(displayBoxPrice)} con Mercado Pago`
+                ? `Pagar ${formatBoxPrice(displayTotal)} con Mercado Pago`
                 : method === "efectivo"
-                  ? `Confirmar box (${formatBoxPrice(displayBoxPrice)} en efectivo)`
+                  ? `Confirmar box (${formatBoxPrice(displayTotal)} en efectivo)`
                   : "Confirmar box y ver datos de transferencia"}
           </button>
         </section>

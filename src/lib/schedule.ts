@@ -10,6 +10,25 @@ export function getCurrentLocalTime(date: Date = new Date()): string {
   }).format(date);
 }
 
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+// Día de la semana actual en la zona horaria de la tienda: 0=domingo..6=sábado.
+export function getCurrentLocalDayOfWeek(date: Date = new Date()): number {
+  const label = new Intl.DateTimeFormat("en-US", {
+    timeZone: siteConfig.timezone,
+    weekday: "short",
+  }).format(date);
+  return WEEKDAY_INDEX[label] ?? date.getDay();
+}
+
 // Un producto sin horario configurado siempre está disponible (según su
 // flag "active"). Con horario, soporta rangos que cruzan la medianoche
 // (ej: 22:00 a 06:00 para disponibilidad nocturna).

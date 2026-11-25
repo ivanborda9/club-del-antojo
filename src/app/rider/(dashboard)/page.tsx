@@ -113,6 +113,11 @@ function PoolOrderCard({ order }: { order: OrderRow }) {
           {formatPrice(order.total)}
         </span>
       </div>
+      {order.shippingCost > 0 && (
+        <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700">
+          🛵 Cobrás {formatPrice(order.shippingCost)} por este envío
+        </p>
+      )}
       <form action={claimOrderAction} className="mt-3">
         <input type="hidden" name="orderId" value={order.id} />
         <button
@@ -156,6 +161,11 @@ function ActiveDeliveryCard({
         <span>Total</span>
         <span>{formatPrice(order.total)}</span>
       </div>
+      {order.shippingCost > 0 && (
+        <p className="mt-1 rounded-xl bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700">
+          🛵 Cobrás {formatPrice(order.shippingCost)} por este envío
+        </p>
+      )}
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <a

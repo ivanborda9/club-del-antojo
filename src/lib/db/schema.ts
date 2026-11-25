@@ -50,6 +50,11 @@ export const orders = sqliteTable("orders", {
     .notNull()
     .default("pendiente_pago"),
   total: real("total").notNull(),
+  // Costo de envío ya incluido en "total" (se muestra aparte para el
+  // cliente y es lo que cobra el repartidor por esta entrega). Calculado
+  // según franja horaria/día y distancia al hacer el pedido.
+  shippingCost: real("shipping_cost").notNull().default(0),
+  shippingDistanceKm: real("shipping_distance_km"),
   mpPreferenceId: text("mp_preference_id"),
   mpPaymentId: text("mp_payment_id"),
   riderId: text("rider_id"),
@@ -180,10 +185,31 @@ export const categorySortOrder = sqliteTable("category_sort_order", {
 });
 
 // Configuración general tipo clave-valor (ej. intervalo del carrusel de
-// banners en segundos). Si falta una clave, el código usa un default.
+// banners en segundos, ubicación del local para calcular distancias de
+// envío). Si falta una clave, el código usa un default.
 export const siteSettings = sqliteTable("site_settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
+});
+
+// Reglas de precio de envío: combinan día de la semana + franja horaria +
+// distancia máxima desde el local. Al pagar, se busca la regla activa que
+// coincida con el momento del pedido y la distancia calculada, con el
+// menor "maxDistanceKm" que la cubra (la más "ajustada" primero). Si
+// ninguna coincide, se usa el envío por defecto (site_settings).
+export const shippingRates = sqliteTable("shipping_rates", {
+  id: text("id").primaryKey(),
+  // Solo para identificarla en el admin (ej. "Centro de día").
+  label: text("label").notNull(),
+  // Días de la semana en que aplica, 0=domingo..6=sábado, separados por
+  // coma (ej. "1,2,3,4,5" para lunes a viernes).
+  daysOfWeek: text("days_of_week").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+  maxDistanceKm: real("max_distance_km").notNull(),
+  price: real("price").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
 // Oferta que se muestra antes de pagar cuando "triggerProductId" está en el
@@ -226,3 +252,5 @@ export type BoxSizeRow = typeof boxSizes.$inferSelect;
 export type NewBoxSizeRow = typeof boxSizes.$inferInsert;
 export type ProductVariantRow = typeof productVariants.$inferSelect;
 export type NewProductVariantRow = typeof productVariants.$inferInsert;
+export type ShippingRateRow = typeof shippingRates.$inferSelect;
+export type NewShippingRateRow = typeof shippingRates.$inferInsert;

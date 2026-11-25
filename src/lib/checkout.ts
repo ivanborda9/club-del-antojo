@@ -12,6 +12,7 @@ import {
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import { isWithinSchedule } from "@/lib/schedule";
 import { notifyRidersOfNewOrder } from "@/lib/push";
+import { calculateShippingForAddress } from "@/lib/shippingCalculator";
 
 export type CheckoutItemInput = { productId: string; quantity: number; variantId?: string };
 export type Buyer = { name: string; phone: string; address: string; notes?: string };
@@ -21,6 +22,7 @@ export class CheckoutError extends Error {}
 export type CreatedOrder = {
   orderId: string;
   total: number;
+  shippingCost: number;
   items: {
     productId: string;
     name: string;
@@ -163,7 +165,15 @@ export async function createOrderFromCart(
     }
   }
 
-  const total = resolved.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
+  // Envío: según franja horaria/día y distancia desde el local hasta la
+  // dirección del pedido — nunca se confía en nada que mande el cliente,
+  // se recalcula siempre acá. No se descuenta ni con la promo ni con el
+  // 5% de efectivo: es el costo real del envío (y lo que cobra el
+  // repartidor), no parte del precio de los productos.
+  const { cost: shippingCost, distanceKm } = await calculateShippingForAddress(buyer.address);
+
+  const productsTotal = resolved.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
+  const total = productsTotal + shippingCost;
   const orderId = randomUUID();
 
   // Efectivo se cobra al entregar: no hay nada que esperar para despacharlo,
@@ -180,6 +190,8 @@ export async function createOrderFromCart(
     paymentMethod,
     status,
     total,
+    shippingCost,
+    shippingDistanceKm: distanceKm,
   });
 
   await db.insert(orderItems).values(
@@ -220,6 +232,7 @@ export async function createOrderFromCart(
   return {
     orderId,
     total,
+    shippingCost,
     items: resolved.map((it) => ({
       productId: it.productId,
       name: it.name,

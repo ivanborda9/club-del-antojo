@@ -6,11 +6,17 @@ import { isWithinSchedule } from "@/lib/schedule";
 import { notifyRidersOfNewOrder } from "@/lib/push";
 import { CheckoutError } from "@/lib/checkout";
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
+import { calculateShippingForAddress } from "@/lib/shippingCalculator";
 import type { Buyer, CheckoutItemInput } from "@/lib/checkout";
 
 export type BoxGift = { recipientName: string; message: string };
 
-export type CreatedBoxOrder = { orderId: string; total: number; boxSizeName: string };
+export type CreatedBoxOrder = {
+  orderId: string;
+  total: number;
+  shippingCost: number;
+  boxSizeName: string;
+};
 
 // "Armá tu Box": precio fijo según el tamaño (no la suma de lo elegido). Los
 // productos elegidos quedan en order_items igual, para que el admin sepa
@@ -75,10 +81,15 @@ export async function createBoxOrderFromSelection(
   }
 
   // Mismo incentivo por pagar en efectivo que en el checkout normal.
-  const total =
+  const boxPrice =
     paymentMethod === "efectivo"
       ? Math.round(size.price * (1 - CASH_DISCOUNT_RATE))
       : size.price;
+
+  // Envío: igual que en el checkout normal, nunca se descuenta.
+  const { cost: shippingCost, distanceKm } = await calculateShippingForAddress(buyer.address);
+  const total = boxPrice + shippingCost;
+
   const orderId = randomUUID();
   const status = paymentMethod === "efectivo" ? "pagado" : "pendiente_pago";
 
@@ -91,6 +102,8 @@ export async function createBoxOrderFromSelection(
     paymentMethod,
     status,
     total,
+    shippingCost,
+    shippingDistanceKm: distanceKm,
     isBox: true,
     boxSizeId: size.id,
     boxSizeName: size.name,
@@ -126,5 +139,5 @@ export async function createBoxOrderFromSelection(
     await notifyRidersOfNewOrder();
   }
 
-  return { orderId, total, boxSizeName: size.name };
+  return { orderId, total, shippingCost, boxSizeName: size.name };
 }
