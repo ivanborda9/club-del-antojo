@@ -3,6 +3,7 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { randomUUID } from "crypto";
 import { db } from "./client";
 import {
+  adminPushSubscriptions,
   banners,
   boxSizes,
   businessHours,
@@ -19,6 +20,7 @@ import {
   siteSettings,
 } from "./schema";
 import type {
+  NewAdminPushSubscriptionRow,
   NewBannerRow,
   NewBoxSizeRow,
   NewCategoryScheduleRow,
@@ -896,6 +898,62 @@ export async function savePushSubscription(input: {
 
 export async function deletePushSubscriptionByEndpoint(endpoint: string): Promise<void> {
   await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+}
+
+// ---------- Suscripciones push (panel admin) ----------
+
+// No hay cuenta individual por persona en el admin (la contraseña es
+// compartida por rol) — el endpoint identifica el dispositivo, y guardamos
+// el rol solo a modo informativo.
+export async function saveAdminPushSubscription(input: {
+  role: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}): Promise<void> {
+  await safeQuery(async () => {
+    const existing = (
+      await db
+        .select()
+        .from(adminPushSubscriptions)
+        .where(eq(adminPushSubscriptions.endpoint, input.endpoint))
+        .limit(1)
+    )[0];
+
+    if (existing) {
+      await db
+        .update(adminPushSubscriptions)
+        .set({ role: input.role, p256dh: input.p256dh, auth: input.auth })
+        .where(eq(adminPushSubscriptions.endpoint, input.endpoint));
+      return;
+    }
+
+    const row: NewAdminPushSubscriptionRow = { id: randomUUID(), ...input };
+    await db.insert(adminPushSubscriptions).values(row);
+  }, undefined);
+}
+
+export async function deleteAdminPushSubscriptionByEndpoint(endpoint: string): Promise<void> {
+  await safeQuery(
+    () => db.delete(adminPushSubscriptions).where(eq(adminPushSubscriptions.endpoint, endpoint)),
+    undefined
+  );
+}
+
+// Todas las suscripciones del panel admin (dueño/a y encargado/a): a quién
+// avisarle por celular cuando entra un pedido nuevo.
+export async function getAllAdminPushSubscriptions() {
+  return safeQuery(
+    () =>
+      db
+        .select({
+          endpoint: adminPushSubscriptions.endpoint,
+          p256dh: adminPushSubscriptions.p256dh,
+          auth: adminPushSubscriptions.auth,
+        })
+        .from(adminPushSubscriptions),
+    []
+  );
 }
 
 // Para el panel admin: qué repartidores tienen notificaciones push activas

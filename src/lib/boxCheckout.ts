@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client";
 import { boxSizes, orderItems, orders, products } from "@/lib/db/schema";
 import { isStoreOpenNow } from "@/lib/db/queries";
 import { isWithinSchedule } from "@/lib/schedule";
-import { notifyRidersOfNewOrder } from "@/lib/push";
+import { notifyAdminsOfNewOrder, notifyRidersOfNewOrder } from "@/lib/push";
 import { CheckoutError } from "@/lib/checkout";
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import { calculateShippingForAddress } from "@/lib/shippingCalculator";
@@ -143,6 +143,7 @@ export async function createBoxOrderFromSelection(
 
   if (status === "pagado") {
     await notifyRidersOfNewOrder();
+    await notifyAdminsOfNewOrder();
   }
 
   return { orderId, total, shippingCost, boxSizeName: size.name };

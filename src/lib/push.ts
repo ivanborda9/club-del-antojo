@@ -1,6 +1,8 @@
 import webpush from "web-push";
 import {
+  deleteAdminPushSubscriptionByEndpoint,
   deletePushSubscriptionByEndpoint,
+  getAllAdminPushSubscriptions,
   getPushSubscriptionsForActiveRiders,
 } from "@/lib/db/queries";
 
@@ -43,6 +45,42 @@ export async function notifyRidersOfNewOrder(): Promise<void> {
         const statusCode = (err as { statusCode?: number })?.statusCode;
         if (statusCode === 404 || statusCode === 410) {
           await deletePushSubscriptionByEndpoint(sub.endpoint);
+        }
+      }
+    })
+  );
+}
+
+// Avisa al celular de quien tenga el panel admin abierto con notificaciones
+// activadas (dueño/a y/o encargado/a) que entró un pedido nuevo, sin
+// depender de tener la pestaña abierta — esto es lo que evita que al
+// encargado/a se le pase un pedido por alto.
+export async function notifyAdminsOfNewOrder(): Promise<void> {
+  if (!publicKey || !privateKey) return;
+
+  const subscriptions = await getAllAdminPushSubscriptions();
+  if (!subscriptions.length) return;
+
+  const payload = JSON.stringify({
+    title: "Nuevo pedido",
+    body: "Entró un pedido nuevo. Abrí el panel para verlo.",
+    url: "/admin/pedidos",
+  });
+
+  await Promise.all(
+    subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          payload
+        );
+      } catch (err: unknown) {
+        const statusCode = (err as { statusCode?: number })?.statusCode;
+        if (statusCode === 404 || statusCode === 410) {
+          await deleteAdminPushSubscriptionByEndpoint(sub.endpoint);
         }
       }
     })

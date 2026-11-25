@@ -12,7 +12,7 @@ import {
 } from "@/lib/db/queries";
 import { CASH_DISCOUNT_RATE } from "@/lib/pricing";
 import { isWithinSchedule } from "@/lib/schedule";
-import { notifyRidersOfNewOrder } from "@/lib/push";
+import { notifyAdminsOfNewOrder, notifyRidersOfNewOrder } from "@/lib/push";
 import { calculateShippingForAddress } from "@/lib/shippingCalculator";
 
 export type CheckoutItemInput = { productId: string; quantity: number; variantId?: string };
@@ -233,6 +233,7 @@ export async function createOrderFromCart(
 
   if (status === "pagado") {
     await notifyRidersOfNewOrder();
+    await notifyAdminsOfNewOrder();
   }
 
   return {

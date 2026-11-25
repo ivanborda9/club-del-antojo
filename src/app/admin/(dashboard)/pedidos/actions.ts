@@ -9,7 +9,7 @@ import {
   restoreStockForOrder,
   updateOrderStatus,
 } from "@/lib/db/queries";
-import { notifyRidersOfNewOrder } from "@/lib/push";
+import { notifyAdminsOfNewOrder, notifyRidersOfNewOrder } from "@/lib/push";
 
 const VALID_STATUSES = ["pendiente_pago", "pagado", "en_camino", "entregado", "cancelado"];
 
@@ -36,6 +36,7 @@ export async function changeOrderStatusAction(formData: FormData): Promise<void>
   // el pedido entra al pool de repartidores: hay que avisarles.
   if (status === "pagado" && current.order.status !== "pagado") {
     await notifyRidersOfNewOrder();
+    await notifyAdminsOfNewOrder();
   }
 }
 

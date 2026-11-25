@@ -141,6 +141,20 @@ export const pushSubscriptions = sqliteTable("push_subscriptions", {
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
+// Suscripciones push del panel admin (dueño/a y encargado/a): no hay una
+// cuenta individual por persona (la contraseña es compartida por rol), así
+// que guardamos el rol del dispositivo que se suscribió, para poder avisar
+// por celular cuando entra un pedido nuevo sin depender de tener la pestaña
+// abierta.
+export const adminPushSubscriptions = sqliteTable("admin_push_subscriptions", {
+  id: text("id").primaryKey(),
+  role: text("role").notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});
+
 export const banners = sqliteTable("banners", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
@@ -256,6 +270,8 @@ export type RiderRow = typeof riders.$inferSelect;
 export type NewRiderRow = typeof riders.$inferInsert;
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscriptionRow = typeof pushSubscriptions.$inferInsert;
+export type AdminPushSubscriptionRow = typeof adminPushSubscriptions.$inferSelect;
+export type NewAdminPushSubscriptionRow = typeof adminPushSubscriptions.$inferInsert;
 export type CategoryScheduleRow = typeof categorySchedules.$inferSelect;
 export type NewCategoryScheduleRow = typeof categorySchedules.$inferInsert;
 export type SiteSettingRow = typeof siteSettings.$inferSelect;

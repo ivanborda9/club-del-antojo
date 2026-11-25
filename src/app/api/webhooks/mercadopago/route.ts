@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { orders } from "@/lib/db/schema";
 import { cancelOrderAndRestoreStock } from "@/lib/checkout";
-import { notifyRidersOfNewOrder } from "@/lib/push";
+import { notifyAdminsOfNewOrder, notifyRidersOfNewOrder } from "@/lib/push";
 
 // Mercado Pago notifica pagos acá. Puede mandar el id del pago por query
 // string (?data.id=...&type=payment) o en el body, según la integración.
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
         .set({ status: "pagado", mpPaymentId: String(payment.id) })
         .where(eq(orders.id, orderId));
       await notifyRidersOfNewOrder();
+      await notifyAdminsOfNewOrder();
     } else if (payment.status === "rejected" || payment.status === "cancelled") {
       await cancelOrderAndRestoreStock(orderId);
     }

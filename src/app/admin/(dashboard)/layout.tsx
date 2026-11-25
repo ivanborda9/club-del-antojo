@@ -5,6 +5,7 @@ import { getNewOrdersCount } from "@/lib/db/queries";
 import { AdminLogoutButton } from "@/components/admin/AdminLogoutButton";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminAutoRefresh } from "@/components/admin/AdminAutoRefresh";
+import { AdminNotificationBell } from "@/components/admin/AdminNotificationBell";
 import { NewOrderAlert } from "@/components/admin/NewOrderAlert";
 
 export default async function AdminDashboardLayout({
@@ -29,7 +30,10 @@ export default async function AdminDashboardLayout({
             <span className="text-2xl">🍬</span>
             Club del Antojo
           </Link>
-          <AdminLogoutButton />
+          <div className="flex items-center gap-2">
+            <AdminNotificationBell vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+            <AdminLogoutButton />
+          </div>
         </div>
         <AdminNav newOrdersCount={newOrdersCount} role={role} />
       </header>
