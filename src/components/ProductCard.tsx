@@ -25,6 +25,7 @@ export function ProductCard({
     (item) => item.product.id === product.id && item.variantId === (hasVariants ? selectedVariantId : undefined)
   );
   const outOfStock = hasVariants ? variants.every((v) => v.stock <= 0) : product.stock <= 0;
+  const unavailable = product.comingSoon || outOfStock;
   const availableStock = hasVariants ? (selectedVariant?.stock ?? 0) : product.stock;
   const atMaxStock = !!inCart && inCart.quantity >= availableStock;
 
@@ -53,10 +54,16 @@ export function ProductCard({
         ) : (
           product.emoji
         )}
-        {outOfStock && (
-          <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 text-xs font-semibold text-zinc-500">
-            Sin stock
+        {product.comingSoon ? (
+          <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 text-xs font-semibold text-orange-600">
+            Próximamente
           </span>
+        ) : (
+          outOfStock && (
+            <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 text-xs font-semibold text-zinc-500">
+              Sin stock
+            </span>
+          )
         )}
       </div>
       <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm font-medium text-zinc-800">
@@ -69,7 +76,7 @@ export function ProductCard({
         {formatPrice(product.salePrice)}
       </p>
 
-      {hasVariants && !outOfStock && (
+      {hasVariants && !unavailable && (
         <select
           value={selectedVariantId}
           onChange={(e) => setSelectedVariantId(e.target.value)}
@@ -109,10 +116,10 @@ export function ProductCard({
         <button
           type="button"
           onClick={handleAdd}
-          disabled={outOfStock || (hasVariants && availableStock <= 0)}
+          disabled={unavailable || (hasVariants && availableStock <= 0)}
           className="mt-2 h-9 rounded-full bg-gradient-to-r from-orange-600 to-red-500 text-sm font-bold text-white shadow-sm active:scale-95 transition disabled:cursor-not-allowed disabled:bg-none disabled:bg-zinc-200 disabled:text-zinc-400 disabled:shadow-none"
         >
-          {outOfStock ? "Sin stock" : "Agregar"}
+          {product.comingSoon ? "Próximamente" : outOfStock ? "Sin stock" : "Agregar"}
         </button>
       )}
     </div>

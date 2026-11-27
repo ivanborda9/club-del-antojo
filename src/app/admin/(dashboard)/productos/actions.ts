@@ -31,6 +31,7 @@ function parseProductForm(formData: FormData): ProductInput | { error: string } 
   const lowStockThreshold = Number(formData.get("lowStockThreshold"));
   const active = formData.get("active") === "on";
   const includeInBox = formData.get("includeInBox") === "on";
+  const comingSoon = formData.get("comingSoon") === "on";
   const scheduleStart = String(formData.get("scheduleStart") ?? "").trim() || null;
   const scheduleEnd = String(formData.get("scheduleEnd") ?? "").trim() || null;
 
@@ -65,6 +66,7 @@ function parseProductForm(formData: FormData): ProductInput | { error: string } 
     lowStockThreshold,
     active,
     includeInBox,
+    comingSoon,
     scheduleStart,
     scheduleEnd,
   };

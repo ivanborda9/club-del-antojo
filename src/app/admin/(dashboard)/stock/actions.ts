@@ -33,6 +33,7 @@ export async function createSimpleProductAction(formData: FormData): Promise<voi
     lowStockThreshold: 5,
     active: true,
     includeInBox: false,
+    comingSoon: false,
     scheduleStart: null,
     scheduleEnd: null,
   });

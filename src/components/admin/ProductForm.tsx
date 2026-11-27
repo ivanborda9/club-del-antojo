@@ -242,6 +242,24 @@ export function ProductForm({
         Se puede elegir para &quot;Armá tu Box&quot;
       </label>
 
+      <label className="flex items-start gap-2 rounded-2xl border border-orange-100 bg-orange-50/50 p-3 text-sm text-zinc-700">
+        <input
+          type="checkbox"
+          name="comingSoon"
+          defaultChecked={product?.comingSoon ?? false}
+          className="mt-0.5 h-4 w-4"
+        />
+        <span>
+          <span className="font-medium">Próximamente</span>
+          <br />
+          <span className="text-xs text-zinc-500">
+            Se muestra en la tienda con el cartel &quot;Próximamente&quot;, pero nadie lo puede
+            comprar todavía (más allá de lo que diga el stock). Ideal para avisar de algo que
+            está por llegar, como fiambres o milanesas de pollo.
+          </span>
+        </span>
+      </label>
+
       <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-3">
         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
           <input

@@ -72,6 +72,9 @@ export async function createBoxOrderFromSelection(
     if (!isWithinSchedule(product.scheduleStart, product.scheduleEnd)) {
       throw new CheckoutError(`"${product.name}" no está disponible en este horario.`);
     }
+    if (product.comingSoon) {
+      throw new CheckoutError(`"${product.name}" todavía no está disponible para comprar (próximamente).`);
+    }
     if (product.stock < quantity) {
       throw new CheckoutError(
         `No hay suficiente stock de "${product.name}" (quedan ${product.stock}).`

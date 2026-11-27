@@ -72,7 +72,7 @@ export async function getProductById(id: string): Promise<ProductRow | undefined
 // producto ni de la categoría (la pestaña desaparece sola porque se arma
 // a partir de esta misma lista, ya filtrada).
 export async function getStorefrontProducts() {
-  const [rows, restrictedCategories, variantRows] = await Promise.all([
+  const [rows, restrictedCategories, variantRows, comingSoonRows] = await Promise.all([
     db
       .select({
         id: products.id,
@@ -94,6 +94,13 @@ export async function getStorefrontProducts() {
     // Variantes (ej. sabores de una pizza en un combo): si falta la
     // migración, los productos simplemente no muestran selector.
     safeQuery(() => db.select().from(productVariants).orderBy(asc(productVariants.sortOrder)), []),
+    // "Próximamente": selecteado aparte y con safeQuery para que, si falta
+    // la migración, la tienda siga funcionando (todo se trata como
+    // disponible) en vez de romperse por completo.
+    safeQuery(
+      () => db.select({ id: products.id, comingSoon: products.comingSoon }).from(products),
+      []
+    ),
   ]);
 
   const categoryScheduleByName = new Map(
@@ -105,6 +112,7 @@ export async function getStorefrontProducts() {
     list.push({ id: v.id, name: v.name, stock: v.stock });
     variantsByProductId.set(v.productId, list);
   }
+  const comingSoonById = new Map(comingSoonRows.map((r) => [r.id, r.comingSoon]));
 
   return rows
     .filter((p) => isWithinSchedule(p.scheduleStart, p.scheduleEnd))
@@ -125,6 +133,7 @@ export async function getStorefrontProducts() {
         description: p.description,
         salePrice: p.salePrice,
         stock: p.stock,
+        comingSoon: comingSoonById.get(p.id) ?? false,
         ...(variants && variants.length > 0 ? { variants } : {}),
       };
     });
@@ -153,7 +162,13 @@ export async function getBoxEligibleProducts() {
           scheduleEnd: products.scheduleEnd,
         })
         .from(products)
-        .where(and(eq(products.active, true), eq(products.includeInBox, true)))
+        .where(
+          and(
+            eq(products.active, true),
+            eq(products.includeInBox, true),
+            eq(products.comingSoon, false)
+          )
+        )
         .orderBy(asc(products.category), asc(products.name)),
       safeQuery(() => getAllCategorySchedules(), []),
     ]);
@@ -179,6 +194,7 @@ export async function getBoxEligibleProducts() {
         description: p.description,
         salePrice: p.salePrice,
         stock: p.stock,
+        comingSoon: false,
       }));
   }, []);
 }
@@ -447,6 +463,7 @@ export type ProductInput = {
   lowStockThreshold: number;
   active: boolean;
   includeInBox: boolean;
+  comingSoon: boolean;
   scheduleStart: string | null;
   scheduleEnd: string | null;
 };

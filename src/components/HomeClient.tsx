@@ -15,9 +15,11 @@ import { siteConfig } from "@/config/site";
 import type { BannerRow } from "@/lib/db/schema";
 import type { Product } from "@/types";
 
-// Sin stock: todas las variantes agotadas (si tiene) o el stock del
-// producto en 0 (si no tiene variantes).
+// Sin stock (o "próximamente", que tampoco se puede comprar): todas las
+// variantes agotadas (si tiene) o el stock del producto en 0 (si no tiene
+// variantes).
 function isOutOfStock(product: Product): boolean {
+  if (product.comingSoon) return true;
   if (product.variants && product.variants.length > 0) {
     return product.variants.every((v) => v.stock <= 0);
   }

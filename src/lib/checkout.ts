@@ -71,6 +71,9 @@ export async function createOrderFromCart(
     if (!isWithinSchedule(product.scheduleStart, product.scheduleEnd)) {
       throw new CheckoutError(`"${product.name}" no está disponible en este horario.`);
     }
+    if (product.comingSoon) {
+      throw new CheckoutError(`"${product.name}" todavía no está disponible para comprar (próximamente).`);
+    }
 
     // Productos con variantes (ej. sabor de pizza en un combo): el stock
     // que manda es el de la variedad elegida, no el del producto.

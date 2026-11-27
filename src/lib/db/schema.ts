@@ -21,6 +21,10 @@ export const products = sqliteTable("products", {
   // defecto: hay que habilitarlo producto por producto, no todo lo
   // publicado tiene que poder entrar en un box.
   includeInBox: integer("include_in_box", { mode: "boolean" }).notNull().default(false),
+  // "Próximamente": se muestra en la tienda (para generar expectativa, ej.
+  // fiambres y milanesas de pollo que todavía no llegaron) pero no se puede
+  // comprar, más allá de lo que diga el stock. Se saca del box automático.
+  comingSoon: integer("coming_soon", { mode: "boolean" }).notNull().default(false),
   // Si se puede ofrecer con descuento en el cartel de "agregá algo más"
   // del checkout (ej. bebidas, cuando el carrito tiene un producto de
   // "Salvá la Comida" y todavía no tiene ninguna bebida). Configurable

@@ -16,6 +16,9 @@ export type Product = {
   description: string | null;
   salePrice: number;
   stock: number;
+  // "Próximamente": se muestra para generar expectativa, pero no se puede
+  // comprar todavía (independiente de lo que diga el stock).
+  comingSoon: boolean;
   // Presente solo si el producto tiene variantes entre las que elegir (ej.
   // sabor de pizza en un combo). Si no, se vende como siempre.
   variants?: ProductVariant[];

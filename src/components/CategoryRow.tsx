@@ -73,6 +73,7 @@ function CompactProductCard({
     (item) => item.product.id === product.id && item.variantId === (hasVariants ? selectedVariantId : undefined)
   );
   const outOfStock = hasVariants ? variants.every((v) => v.stock <= 0) : product.stock <= 0;
+  const unavailable = product.comingSoon || outOfStock;
   const availableStock = hasVariants ? (selectedVariant?.stock ?? 0) : product.stock;
   const atMaxStock = !!inCart && inCart.quantity >= availableStock;
 
@@ -99,15 +100,21 @@ function CompactProductCard({
         ) : (
           product.emoji
         )}
-        {outOfStock && (
-          <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/80 text-xs font-semibold text-zinc-500">
-            Sin stock
+        {product.comingSoon ? (
+          <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/80 text-xs font-semibold text-orange-600">
+            Próximamente
           </span>
+        ) : (
+          outOfStock && (
+            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/80 text-xs font-semibold text-zinc-500">
+              Sin stock
+            </span>
+          )
         )}
       </div>
       <p className="mt-1.5 line-clamp-1 text-xs font-medium text-zinc-800">{product.name}</p>
 
-      {hasVariants && !outOfStock && (
+      {hasVariants && !unavailable && (
         <select
           value={selectedVariantId}
           onChange={(e) => setSelectedVariantId(e.target.value)}
@@ -149,7 +156,7 @@ function CompactProductCard({
           <button
             type="button"
             onClick={handleAdd}
-            disabled={outOfStock || (hasVariants && availableStock <= 0)}
+            disabled={unavailable || (hasVariants && availableStock <= 0)}
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-orange-600 to-red-500 text-sm font-bold text-white active:scale-95 transition disabled:cursor-not-allowed disabled:bg-none disabled:bg-zinc-200 disabled:text-zinc-400"
             aria-label="Agregar"
           >
