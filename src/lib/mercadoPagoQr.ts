@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { siteConfig } from "@/config/site";
-import { getMpQrPosConfig, setMpQrPosConfig } from "@/lib/db/queries";
+import { getMpQrPosConfig, getStoreOrigin, setMpQrPosConfig } from "@/lib/db/queries";
+import { reverseGeocode } from "@/lib/geocoding";
 
 // Integración de "Código QR interoperable" de Mercado Pago (Orders API),
 // para que el cliente pague escaneando con CUALQUIER billetera (Mercado
@@ -76,6 +77,17 @@ export async function ensureQrStoreAndPos(): Promise<{ posExternalId: string }> 
   const existing = await getMpQrPosConfig();
   if (existing) return { posExternalId: existing.posExternalId };
 
+  // Mercado Pago exige la ubicación de la tienda (dirección + coordenadas)
+  // para crearla — reutilizamos la del local ya cargada en /admin/envios
+  // (para el cálculo de envíos), así no hay que pedirla dos veces.
+  const origin = await getStoreOrigin();
+  if (origin.lat === null || origin.lng === null) {
+    throw new Error(
+      "Para usar el pago con QR primero configurá la dirección del local en /admin/envios."
+    );
+  }
+  const reverse = await reverseGeocode(origin.lat, origin.lng);
+
   const me = await mpRequest<MpUser>("/users/me", { method: "GET" });
   const userId = String(me.id);
 
@@ -85,6 +97,15 @@ export async function ensureQrStoreAndPos(): Promise<{ posExternalId: string }> 
     body: {
       name: siteConfig.name,
       external_id: STORE_EXTERNAL_ID,
+      location: {
+        street_name: reverse?.streetName || "S/N",
+        street_number: reverse?.streetNumber || "S/N",
+        city_name: reverse?.cityName || siteConfig.city,
+        state_name: reverse?.stateName || siteConfig.city,
+        latitude: origin.lat,
+        longitude: origin.lng,
+        reference: origin.address ?? siteConfig.name,
+      },
     },
   });
   const storeId = String(store.id);
