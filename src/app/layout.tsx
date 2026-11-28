@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
+import { WhatsappFloatingButton } from "@/components/WhatsappFloatingButton";
 import { siteConfig } from "@/config/site";
 
 const geistSans = Geist({
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-orange-50/40">
         <CartProvider>{children}</CartProvider>
+        <WhatsappFloatingButton />
       </body>
     </html>
   );
