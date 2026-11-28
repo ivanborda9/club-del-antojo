@@ -29,7 +29,7 @@ export async function createBoxOrderFromSelection(
   itemsInput: CheckoutItemInput[],
   buyer: Buyer,
   gift: BoxGift,
-  paymentMethod: "mercadopago" | "transferencia" | "efectivo"
+  paymentMethod: "mercadopago" | "transferencia" | "efectivo" | "qr"
 ): Promise<CreatedBoxOrder> {
   if (!itemsInput.length) {
     throw new CheckoutError("Elegí al menos un producto para el box.");

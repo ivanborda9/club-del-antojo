@@ -38,7 +38,7 @@ export type CreatedOrder = {
 export async function createOrderFromCart(
   itemsInput: CheckoutItemInput[],
   buyer: Buyer,
-  paymentMethod: "mercadopago" | "transferencia" | "efectivo"
+  paymentMethod: "mercadopago" | "transferencia" | "efectivo" | "qr"
 ): Promise<CreatedOrder> {
   if (!itemsInput.length) throw new CheckoutError("El carrito está vacío.");
   if (!(await isStoreOpenNow())) {

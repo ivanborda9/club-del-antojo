@@ -28,4 +28,5 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   mercadopago: "Mercado Pago",
   transferencia: "Transferencia",
   efectivo: "Efectivo (contra entrega)",
+  qr: "QR (Mercado Pago, Ualá, Cuenta DNI, etc.)",
 };
