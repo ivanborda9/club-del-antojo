@@ -6,6 +6,7 @@ import { formatPrice } from "@/config/site";
 import { isWithinSchedule } from "@/lib/schedule";
 import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 import { CategoryScheduleControl } from "@/components/admin/CategoryScheduleControl";
+import { toggleIncludeInBoxAction } from "./actions";
 
 const NO_PARENT = "__sin_categoria__";
 
@@ -168,6 +169,7 @@ export default async function AdminProductsPage(
                       <th className="px-3 py-2 text-right">Margen</th>
                       <th className="px-3 py-2 text-right">Stock</th>
                       <th className="px-3 py-2">Estado</th>
+                      <th className="px-3 py-2">Box</th>
                       <th className="px-3 py-2" />
                     </tr>
                   </thead>
@@ -234,6 +236,31 @@ export default async function AdminProductsPage(
                                 {p.scheduleStart}–{p.scheduleEnd}
                               </span>
                             )}
+                          </td>
+                          <td className="px-3 py-2">
+                            <form action={toggleIncludeInBoxAction}>
+                              <input type="hidden" name="id" value={p.id} />
+                              <input
+                                type="hidden"
+                                name="next"
+                                value={(!p.includeInBox).toString()}
+                              />
+                              <button
+                                type="submit"
+                                title={
+                                  p.includeInBox
+                                    ? "Sacar de Armá tu Box"
+                                    : "Sumar a Armá tu Box"
+                                }
+                                className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                                  p.includeInBox
+                                    ? "bg-purple-100 text-purple-700"
+                                    : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                                }`}
+                              >
+                                {p.includeInBox ? "📦 En Box" : "+ Box"}
+                              </button>
+                            </form>
                           </td>
                           <td className="px-3 py-2">
                             <div className="flex items-center gap-3">

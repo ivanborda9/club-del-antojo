@@ -10,6 +10,7 @@ import {
   deleteProduct,
   deleteProductVariant,
   setCategorySchedule,
+  setProductIncludeInBox,
   setProductUpsell,
   updateProduct,
   updateProductVariantStock,
@@ -97,6 +98,18 @@ export async function updateProductAction(
   revalidatePath("/admin/productos");
   revalidatePath("/");
   redirect("/admin/productos");
+}
+
+// Botón rápido desde el listado: suma o saca del box sin abrir el
+// formulario completo de edición del producto.
+export async function toggleIncludeInBoxAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const next = formData.get("next") === "true";
+  if (!id) return;
+
+  await setProductIncludeInBox(id, next);
+  revalidatePath("/admin/productos");
+  revalidatePath("/armar-box");
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {

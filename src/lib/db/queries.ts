@@ -491,6 +491,15 @@ export async function updateProductStock(id: string, stock: number): Promise<voi
     .where(eq(products.id, id));
 }
 
+// Toggle rápido desde el listado de Productos, sin abrir el formulario
+// completo de edición.
+export async function setProductIncludeInBox(id: string, includeInBox: boolean): Promise<void> {
+  await db
+    .update(products)
+    .set({ includeInBox, updatedAt: sql`(current_timestamp)` })
+    .where(eq(products.id, id));
+}
+
 export async function deleteProduct(id: string): Promise<void> {
   await db.delete(products).where(eq(products.id, id));
 }
