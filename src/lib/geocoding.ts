@@ -28,50 +28,6 @@ export async function geocodeAddress(address: string): Promise<LatLng | null> {
   }
 }
 
-type NominatimAddress = {
-  house_number?: string;
-  road?: string;
-  city?: string;
-  town?: string;
-  village?: string;
-  suburb?: string;
-  state?: string;
-};
-
-export type ReverseGeocodeResult = {
-  streetName: string;
-  streetNumber: string;
-  cityName: string;
-  stateName: string;
-};
-
-// Geocodificación inversa (lat/lng → dirección en partes): usada para
-// armar el objeto "location" que pide Mercado Pago al crear la tienda de
-// cobro con QR, a partir de la ubicación del local ya cargada en
-// /admin/envios (nunca le pedimos la dirección "en partes" al dueño/a,
-// alcanza con lo que ya tiene configurado para el cálculo de envíos).
-export async function reverseGeocode(lat: number, lng: number): Promise<ReverseGeocodeResult | null> {
-  const url = `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${lat}&lon=${lng}`;
-  try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { address?: NominatimAddress };
-    const a = data.address;
-    if (!a) return null;
-    return {
-      streetName: a.road ?? "S/N",
-      streetNumber: a.house_number ?? "S/N",
-      cityName: a.city ?? a.town ?? a.village ?? a.suburb ?? "",
-      stateName: a.state ?? "",
-    };
-  } catch {
-    return null;
-  }
-}
-
 // Distancia en línea recta (no por calles) — suficiente para definir
 // franjas de precio de envío sin depender de un servicio de mapas pago.
 export function haversineDistanceKm(a: LatLng, b: LatLng): number {
