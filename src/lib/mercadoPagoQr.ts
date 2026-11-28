@@ -17,8 +17,9 @@ import { reverseGeocode } from "@/lib/geocoding";
 // Mercado Pago, que se propaga tal cual para poder diagnosticarlo.
 
 const MP_API_BASE = "https://api.mercadopago.com";
-const STORE_EXTERNAL_ID = "club-del-antojo-tienda";
-const POS_EXTERNAL_ID = "club-del-antojo-caja-web";
+// Mercado Pago exige que external_id sea alfanumérico (nada de guiones).
+const STORE_EXTERNAL_ID = "clubdelantojotienda1";
+const POS_EXTERNAL_ID = "clubdelantojocajaweb1";
 
 function getAccessToken(): string {
   const token = process.env.MP_ACCESS_TOKEN;
