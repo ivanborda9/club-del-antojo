@@ -7,6 +7,7 @@ import { paletteFor } from "@/components/CategoryTabs";
 import { StoreClosedDetails, StoreStatusBar, useStoreOpen } from "@/components/StoreStatusBadge";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
 import { CASH_DISCOUNT_RATE, formatBoxPrice, isFreeBoxPrice } from "@/lib/pricing";
+import { compareProductsForDisplay } from "@/lib/productSort";
 import type { BoxSizeRow } from "@/lib/db/schema";
 import type { PaymentMethod, Product } from "@/types";
 
@@ -15,7 +16,11 @@ type Props = {
   products: Product[];
 };
 
-export function ArmarBoxClient({ sizes, products }: Props) {
+export function ArmarBoxClient({ sizes, products: productsProp }: Props) {
+  const products = useMemo(
+    () => [...productsProp].sort(compareProductsForDisplay),
+    [productsProp]
+  );
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 

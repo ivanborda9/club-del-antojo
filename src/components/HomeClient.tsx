@@ -13,18 +13,8 @@ import { ProductGrid } from "@/components/ProductGrid";
 import { StoreClosedDetails, StoreStatusBar } from "@/components/StoreStatusBadge";
 import { siteConfig } from "@/config/site";
 import type { BannerRow } from "@/lib/db/schema";
+import { compareProductsForDisplay } from "@/lib/productSort";
 import type { Product } from "@/types";
-
-// Sin stock (o "próximamente", que tampoco se puede comprar): todas las
-// variantes agotadas (si tiene) o el stock del producto en 0 (si no tiene
-// variantes).
-function isOutOfStock(product: Product): boolean {
-  if (product.comingSoon) return true;
-  if (product.variants && product.variants.length > 0) {
-    return product.variants.every((v) => v.stock <= 0);
-  }
-  return product.stock <= 0;
-}
 
 type Props = {
   products: Product[];
@@ -92,7 +82,7 @@ export function HomeClient({
       map.get(product.category)?.push(product);
     }
     for (const list of map.values()) {
-      list.sort((a, b) => Number(isOutOfStock(a)) - Number(isOutOfStock(b)));
+      list.sort(compareProductsForDisplay);
     }
     return map;
   }, [products, categories]);
@@ -177,10 +167,12 @@ export function HomeClient({
     : [];
 
   const visibleProducts = useMemo(() => {
-    if (activeCategory) return products.filter((product) => product.category === activeCategory);
-    if (activeParentCategory)
-      return products.filter((product) => product.parentCategory === activeParentCategory);
-    return products;
+    const filtered = activeCategory
+      ? products.filter((product) => product.category === activeCategory)
+      : activeParentCategory
+        ? products.filter((product) => product.parentCategory === activeParentCategory)
+        : products;
+    return [...filtered].sort(compareProductsForDisplay);
   }, [products, activeCategory, activeParentCategory]);
 
   return (
