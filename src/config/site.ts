@@ -4,7 +4,7 @@ export const siteConfig = {
   tagline: "Kiosco online con envío a domicilio",
   city: "Tu Ciudad",
   deliveryNote: "Hacemos envíos únicamente dentro de Tu Ciudad. No hay retiro en local.",
-  whatsappNumber: "5491100000000", // TODO: reemplazar por el número real (código de país + área, sin + ni espacios)
+  whatsappNumber: "5492281526497",
   bank: {
     holderName: "Nombre Apellido",
     alias: "clubdelantojo.mp", // TODO: reemplazar por el alias real
