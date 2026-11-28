@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import QRCode from "qrcode";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { paletteFor } from "@/components/CategoryTabs";
 import { StoreClosedDetails, StoreStatusBar, useStoreOpen } from "@/components/StoreStatusBadge";
 import { buildWhatsappOrderLink, formatPrice, siteConfig } from "@/config/site";
@@ -15,13 +14,6 @@ import type { PaymentMethod, Product } from "@/types";
 type Props = {
   sizes: BoxSizeRow[];
   products: Product[];
-};
-
-type QrPaymentState = {
-  orderId: string;
-  qrImage: string | null;
-  total: number;
-  status: "esperando" | "pagado" | "cancelado";
 };
 
 export function ArmarBoxClient({ sizes, products: productsProp }: Props) {
@@ -45,36 +37,6 @@ export function ArmarBoxClient({ sizes, products: productsProp }: Props) {
   const [orderSummary, setOrderSummary] = useState<string | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
   const [shippingLoading, setShippingLoading] = useState(false);
-  const [qrPayment, setQrPayment] = useState<QrPaymentState | null>(null);
-  const cancellingRef = useRef(false);
-
-  // Mientras se espera que escaneen el QR: cada 3s preguntamos nuestro
-  // propio estado (lo actualiza el webhook de Mercado Pago cuando se
-  // confirma el pago).
-  useEffect(() => {
-    if (!qrPayment || qrPayment.status !== "esperando") return;
-    let cancelled = false;
-    const interval = setInterval(() => {
-      fetch(`/api/orders/${qrPayment.orderId}/status`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (cancelled) return;
-          if (data.status === "pagado") {
-            setQrPayment((prev) => (prev ? { ...prev, status: "pagado" } : prev));
-          } else if (data.status === "cancelado") {
-            setQrPayment((prev) => (prev ? { ...prev, status: "cancelado" } : prev));
-          }
-        })
-        .catch(() => {
-          // Reintenta en el próximo tick.
-        });
-    }, 3000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qrPayment?.orderId, qrPayment?.status]);
 
   // Cotización de envío: solo para que el cliente vea un estimado antes de
   // pagar — el costo real siempre lo recalcula el servidor al crear el
@@ -155,29 +117,6 @@ export function ArmarBoxClient({ sizes, products: productsProp }: Props) {
       gift: { recipientName, message: giftMessage },
     };
 
-    if (method === "qr") {
-      try {
-        const res = await fetch("/api/checkout/box/qr", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.qrData) {
-          throw new Error(data.error ?? "No se pudo generar el QR de pago.");
-        }
-        const qrImage = await QRCode.toDataURL(data.qrData, { margin: 1, width: 280 }).catch(
-          () => null
-        );
-        setQrPayment({ orderId: data.orderId, qrImage, total: data.total, status: "esperando" });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "No se pudo generar el QR de pago.");
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
     if (method === "mercadopago") {
       try {
         const res = await fetch("/api/checkout/box/mercadopago", {
@@ -243,92 +182,6 @@ export function ArmarBoxClient({ sizes, products: productsProp }: Props) {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function handleCancelQr() {
-    if (!qrPayment || cancellingRef.current) return;
-    cancellingRef.current = true;
-    try {
-      await fetch("/api/checkout/qr/cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: qrPayment.orderId }),
-      });
-    } catch {
-      // El pedido queda "pendiente_pago" y se resuelve solo con la
-      // expiración/webhook de Mercado Pago si esto falla.
-    } finally {
-      cancellingRef.current = false;
-      setQrPayment(null);
-    }
-  }
-
-  if (qrPayment?.status === "pagado") {
-    return (
-      <div className="safe-bottom mx-auto max-w-md px-4 py-10 text-center">
-        <p className="text-5xl">✅</p>
-        <h1 className="mt-2 text-lg font-bold text-zinc-800">¡Pago recibido!</h1>
-        <p className="mt-2 text-sm text-zinc-500">
-          Ya confirmamos tu pago de {formatPrice(qrPayment.total)}. Armamos tu box y lo
-          despachamos.
-        </p>
-        <Link
-          href="/"
-          className="mt-6 flex h-11 items-center justify-center rounded-full bg-orange-600 px-6 text-sm font-bold text-white"
-        >
-          Volver al inicio
-        </Link>
-      </div>
-    );
-  }
-
-  if (qrPayment) {
-    return (
-      <div className="safe-bottom mx-auto max-w-md px-4 py-10 text-center">
-        <h1 className="text-lg font-bold text-zinc-800">Escaneá para pagar</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Abrí Mercado Pago, Cuenta DNI, Ualá o la app de tu banco y escaneá este código.
-        </p>
-
-        {qrPayment.status === "cancelado" ? (
-          <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
-            Este QR ya no es válido (venció o se canceló). Elegí otra forma de pago.
-            <button
-              type="button"
-              onClick={() => setQrPayment(null)}
-              className="mt-3 flex h-10 w-full items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white"
-            >
-              Elegir otro medio de pago
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="mx-auto mt-5 flex h-[280px] w-[280px] items-center justify-center rounded-2xl border border-orange-100 bg-white p-3">
-              {qrPayment.qrImage ? (
-                // eslint-disable-next-line @next/next/no-img-element -- data: URL generada en el cliente.
-                <img src={qrPayment.qrImage} alt="Código QR para pagar" className="h-full w-full" />
-              ) : (
-                <p className="text-xs text-zinc-400">No se pudo generar la imagen del QR.</p>
-              )}
-            </div>
-            <p className="mt-3 text-base font-bold text-zinc-800">
-              Total: {formatPrice(qrPayment.total)}
-            </p>
-            <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-zinc-500">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500" />
-              Esperando el pago…
-            </p>
-            <button
-              type="button"
-              onClick={handleCancelQr}
-              className="mt-6 flex h-10 w-full items-center justify-center rounded-full border border-zinc-200 text-sm font-semibold text-zinc-600"
-            >
-              Cancelar y elegir otro medio de pago
-            </button>
-          </>
-        )}
-      </div>
-    );
   }
 
   if (cashConfirmed || transferSent) {
@@ -575,13 +428,6 @@ export function ArmarBoxClient({ sizes, products: productsProp }: Props) {
                 selected={method === "efectivo"}
                 onSelect={() => setMethod("efectivo")}
               />
-              <PaymentOption
-                id="qr"
-                label="Pagar con QR"
-                description="Escaneás con Mercado Pago, Cuenta DNI, Ualá o tu banco"
-                selected={method === "qr"}
-                onSelect={() => setMethod("qr")}
-              />
             </div>
           </div>
 
@@ -604,11 +450,9 @@ export function ArmarBoxClient({ sizes, products: productsProp }: Props) {
               ? "Procesando…"
               : method === "mercadopago"
                 ? `Pagar ${formatBoxPrice(displayTotal)} con Mercado Pago`
-                : method === "qr"
-                  ? `Generar QR para pagar ${formatBoxPrice(displayTotal)}`
-                  : method === "efectivo"
-                    ? `Confirmar box (${formatBoxPrice(displayTotal)} en efectivo)`
-                    : "Confirmar box y ver datos de transferencia"}
+                : method === "efectivo"
+                  ? `Confirmar box (${formatBoxPrice(displayTotal)} en efectivo)`
+                  : "Confirmar box y ver datos de transferencia"}
           </button>
         </section>
       )}

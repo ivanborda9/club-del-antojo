@@ -1,1 +1,0 @@
-ALTER TABLE `orders` ADD `mp_order_id` text;

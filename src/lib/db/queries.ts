@@ -1180,58 +1180,6 @@ export async function setCartPromoEligibleProducts(productIds: string[]): Promis
   }
 }
 
-// ---------- Pago con QR (Mercado Pago) ----------
-
-const MP_QR_SETTING_KEYS = {
-  storeId: "mp_qr_store_id",
-  posExternalId: "mp_qr_pos_external_id",
-} as const;
-
-// Guardados una sola vez (al crear la tienda/caja de cobro en Mercado
-// Pago): de qué "caja" salen los QR dinámicos que se generan en cada
-// pedido. Envuelto en safeQuery: si falta la migración de
-// "site_settings", simplemente no hay configuración guardada todavía (se
-// vuelve a crear en el próximo intento).
-export async function getMpQrPosConfig(): Promise<{ storeId: string; posExternalId: string } | null> {
-  return safeQuery(async () => {
-    const rows = await db
-      .select()
-      .from(siteSettings)
-      .where(inArray(siteSettings.key, [MP_QR_SETTING_KEYS.storeId, MP_QR_SETTING_KEYS.posExternalId]));
-    const byKey = new Map(rows.map((r) => [r.key, r.value]));
-    const storeId = byKey.get(MP_QR_SETTING_KEYS.storeId);
-    const posExternalId = byKey.get(MP_QR_SETTING_KEYS.posExternalId);
-    if (!storeId || !posExternalId) return null;
-    return { storeId, posExternalId };
-  }, null);
-}
-
-export async function setMpQrPosConfig(storeId: string, posExternalId: string): Promise<void> {
-  const entries: [string, string][] = [
-    [MP_QR_SETTING_KEYS.storeId, storeId],
-    [MP_QR_SETTING_KEYS.posExternalId, posExternalId],
-  ];
-  for (const [key, value] of entries) {
-    await db
-      .insert(siteSettings)
-      .values({ key, value })
-      .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
-  }
-}
-
-export async function setOrderMpOrderId(orderId: string, mpOrderId: string): Promise<void> {
-  await db.update(orders).set({ mpOrderId }).where(eq(orders.id, orderId));
-}
-
-// Para el polling del lado del cliente mientras espera que se confirme un
-// pago con QR: solo el estado, nada más.
-export async function getOrderStatusById(orderId: string): Promise<string | undefined> {
-  const row = (
-    await db.select({ status: orders.status }).from(orders).where(eq(orders.id, orderId)).limit(1)
-  )[0];
-  return row?.status;
-}
-
 // ---------- Reportes ----------
 
 export async function getSalesReport(fromISO: string, toISO: string) {

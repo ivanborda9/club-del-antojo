@@ -31,4 +31,4 @@ export type CartItem = {
   variantName?: string;
 };
 
-export type PaymentMethod = "mercadopago" | "transferencia" | "efectivo" | "qr";
+export type PaymentMethod = "mercadopago" | "transferencia" | "efectivo";

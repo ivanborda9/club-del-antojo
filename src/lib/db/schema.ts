@@ -46,7 +46,7 @@ export const orders = sqliteTable("orders", {
   address: text("address").notNull(),
   notes: text("notes"),
   paymentMethod: text("payment_method", {
-    enum: ["mercadopago", "transferencia", "efectivo", "qr"],
+    enum: ["mercadopago", "transferencia", "efectivo"],
   }).notNull(),
   status: text("status", {
     enum: ["pendiente_pago", "pagado", "en_camino", "entregado", "cancelado"],
@@ -61,9 +61,6 @@ export const orders = sqliteTable("orders", {
   shippingDistanceKm: real("shipping_distance_km"),
   mpPreferenceId: text("mp_preference_id"),
   mpPaymentId: text("mp_payment_id"),
-  // Id de la "order" dinámica de Mercado Pago cuando se paga con QR
-  // (distinto de mpPreferenceId, que es de Checkout Pro).
-  mpOrderId: text("mp_order_id"),
   riderId: text("rider_id"),
   // "Armá tu Box": pedido armado a medida (precio fijo por tamaño, no suma
   // de los productos elegidos — esos quedan en order_items igual, para que
